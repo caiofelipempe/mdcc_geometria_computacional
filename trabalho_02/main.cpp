@@ -1,5 +1,5 @@
 #include "renderer.hpp"
-#include "input.hpp"
+#include "input.h"
 
 #include <imgui.h>
 #include <GLFW/glfw3.h>
@@ -9,6 +9,9 @@ public:
     using Renderer::Renderer;
 
 protected:
+    void onInit() override {
+    }
+
     void onUpdate(float dt) override {
         if (input().keys[GLFW_KEY_W]) {
             // mover câmera para frente
@@ -25,6 +28,9 @@ protected:
             input().mouseX,
             input().mouseY);
         ImGui::End();
+    }
+
+    void onShutdown() override {
     }
 };
 

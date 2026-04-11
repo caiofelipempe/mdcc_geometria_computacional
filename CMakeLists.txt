@@ -28,13 +28,6 @@ option(BUILD_TRABALHO_01 "Compilar Trabalho 01" OFF)
 option(BUILD_TRABALHO_02 "Compilar Trabalho 02" ON)
 option(BUILD_TRABALHO_03 "Compilar Trabalho 03" OFF)
 
-target_link_libraries({PROJECT_NAME}
-    PUBLIC
-        OpenGL::GL
-        glfw
-        imgui::imgui
-)
-
 add_subdirectory(common)
 
 if(BUILD_TRABALHO_01)

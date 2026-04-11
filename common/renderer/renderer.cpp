@@ -1,5 +1,5 @@
 #include "renderer.hpp"
-#include "input.hpp"
+#include "input.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -100,4 +100,43 @@ void Renderer::run() {
 
 const InputState& Renderer::input() const {
     return *m_input;
+}
+
+// Implementação das funções virtuais (com implementações vazias)
+void Renderer::onInit() {
+}
+
+void Renderer::onUpdate(float dt) {
+}
+
+void Renderer::onUI() {
+}
+
+void Renderer::onShutdown() {
+}
+
+// Callbacks estáticos
+void Renderer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (!s_instance) return;
+    if (key >= 0 && key < 512) {
+        s_instance->m_input->keys[key] = action != GLFW_RELEASE;
+    }
+}
+
+void Renderer::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (!s_instance) return;
+    if (button >= 0 && button < 8) {
+        s_instance->m_input->mouseButtons[button] = action == GLFW_PRESS;
+    }
+}
+
+void Renderer::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+    if (!s_instance) return;
+    s_instance->m_input->mouseX = xpos;
+    s_instance->m_input->mouseY = ypos;
+}
+
+void Renderer::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    if (!s_instance) return;
+    s_instance->m_input->scrollOffset = yoffset;
 }

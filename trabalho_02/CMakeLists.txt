@@ -1,8 +1,11 @@
-add_executable(trabalho_02)
+add_executable(trabalho_02
     main.cpp
 )
 
-target_link_libraries(trabalho_02)
+target_link_libraries(trabalho_02
     PRIVATE
         common
+        OpenGL::GL
+        glfw
+        imgui::imgui
 )

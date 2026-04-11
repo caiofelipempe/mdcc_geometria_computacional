@@ -39,4 +39,3 @@ private:
     GLFWwindow* m_window{};
     InputState* m_input{};
 };
-``

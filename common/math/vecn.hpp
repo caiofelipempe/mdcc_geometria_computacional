@@ -1,9 +1,11 @@
 #pragma once
 
+#include "error.hpp"
+
 #include <array>
 #include <cmath>
 #include <initializer_list>
-#include <optional>
+#include <expected>
 #include <stdexcept>
 #include <type_traits>
 
@@ -171,13 +173,13 @@ public:
             return std::sqrt(static_cast<double>(length_squared()));
     }
 
-    std::optional<VecN> normalized() const
+    std::expected<VecN, Error> normalized() const
     {
         constexpr T eps = get_epsilon();
         T len_sq = length_squared();
         
         if (len_sq <= eps * eps)
-            return std::nullopt;
+            return std::unexpected(Error::make("Vector is zero"));
         
         if constexpr (std::is_floating_point_v<T>)
             return *this / std::sqrt(len_sq);
@@ -185,7 +187,7 @@ public:
             return *this / static_cast<T>(std::sqrt(static_cast<double>(len_sq)));
     }
 
-    std::optional<T> pseudoangle() const
+    std::expected<T, Error> pseudoangle() const
     {
         static_assert(N == 2, "pseudoangle is only defined for 2D vectors");
         
@@ -196,7 +198,7 @@ public:
         
         // Check for zero vector
         if (std::abs(x) <= eps && std::abs(y) <= eps)
-            return std::nullopt;
+            return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
         
         const T ax = std::abs(x);
         const T ay = std::abs(y);
@@ -292,7 +294,7 @@ constexpr VecN<T, N, EPS> operator*(T scalar, const VecN<T, N, EPS>& v) noexcept
 }
 
 template <typename T, T EPS>
-std::optional<T> pseudoangle(const VecN<T, 2, EPS>& v) noexcept
+std::expected<T, Error> pseudoangle(const VecN<T, 2, EPS>& v) noexcept
 {
     return v.pseudoangle();
 }

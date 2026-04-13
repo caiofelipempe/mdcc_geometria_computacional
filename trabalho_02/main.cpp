@@ -112,6 +112,7 @@ protected:
             {
                 auto pseudoangle0 = m_q1_vec0.pseudoangle();
                 auto pseudoangle1 = m_q1_vec1.pseudoangle();
+                auto pseudoangle_diff = geometry::pseudoangleBetween(m_q1_vec0, m_q1_vec1);
                 ImGui::Text("Vetor 1:");
                 ImGui::SliderFloat2("", &m_q1_vec0[0], -1.0f, 1.0f);
                 pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo de vetor1: %f", pseudoangle0.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor1: N/A");
@@ -120,8 +121,8 @@ protected:
                 ImGui::SliderFloat2("Vetor 2", &m_q1_vec1[0], -1.0f, 1.0f);
                 pseudoangle1.has_value() ? ImGui::Text("Pseudoangulo de vetor2: %f", pseudoangle1.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor2: N/A");
                 ImGui::Separator();
-                if (pseudoangle0.has_value() && pseudoangle1.has_value()) {
-                    ImGui::Text("Diferença entre pseudoângulos: %f", pseudoangle0.value() - pseudoangle1.value());
+                if (pseudoangle_diff.has_value()) {
+                    ImGui::Text("Diferença entre pseudoângulos: %f", pseudoangle_diff.value() >= 0.0 ? pseudoangle_diff.value() : 8.0 + pseudoangle_diff.value());
                     if (m_q1_vec0.pseudoangle_less(m_q1_vec1))
                         ImGui::Text("Vetor 1 está a direita de 2");
                     else if (m_q1_vec1.pseudoangle_less(m_q1_vec0))
@@ -140,7 +141,7 @@ protected:
                 pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo: %f\nPseudoangulo alternativo: %f", pseudoangle0.value_or(-1.0f), pseudoangle1.value_or(-1.0f)) : ImGui::Text("Vetor invalido para cálculo de pseudoângulo");
                 ImGui::Separator();
                 if (ImGui::CollapsingHeader("Explicação")) {
-                    ImGui::Text("O pseudoângulo alternativo deve ser igual ao pseudoângulo original dobrado,\nou seja, deve mapear o plano em uma faixa\nde [0, 8) ao invés de [0, 4).\nO primeiro algoritmo é mais simples,\nmas o segundo pode ser mais preciso em alguns casos,\nespecialmente para vetores próximos aos eixos,\nonde a divisão por valores pequenos pode causar instabilidade numérica.\nNo entanto, ambos os algoritmos devem produzir resultados\nconsistentes para a maioria dos vetores,\ne a escolha entre eles pode depender do contexto específico de uso.\nO primeiro algoritmo calcula o pseudoângulo pelo\nvalor do quadrante + ou - x/(x*y) ou y/(x*y),\nenquanto o segundo algoritmo calcula o pseudoângulo\nusando uma abordagem que divide o plano em 8 octantes,\nusando tangente e cotangente para o cálculo.");
+                    ImGui::Text("O pseudoângulo alternativo deve ser igual à metade do pseudoângulo original,\nou seja, deve mapear o plano em uma faixa\nde [0, 4) ao invés de [0, 8).\nO segundo algoritmo é mais simples,\nmas o primeiro pode ser mais preciso em alguns casos,\nespecialmente para vetores próximos aos eixos,\nonde a divisão por valores pequenos pode causar instabilidade numérica.\nNo entanto, ambos os algoritmos devem produzir resultados\nconsistentes para a maioria dos vetores,\ne a escolha entre eles pode depender do contexto específico de uso.\nO algoritmo alternativo calcula o pseudoângulo pelo\nvalor do quadrante + ou - x/(x*y) ou y/(x*y),\nenquanto o algoritmo original calcula o pseudoângulo\nusando uma abordagem que divide o plano em 8 octantes,\nusando tangente e cotangente para o cálculo.");
                 }
             }
             break;

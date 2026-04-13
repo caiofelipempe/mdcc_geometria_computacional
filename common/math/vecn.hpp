@@ -196,42 +196,6 @@ public:
         const T x = m_data[0];
         const T y = m_data[1];
         
-        auto ax = std::abs(x);
-        auto ay = std::abs(y);
-
-        if (std::abs(x) <= eps && std::abs(y) <= eps) {
-            return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
-        }
-
-
-        if (x >= T{}) {
-            if (y >= T{}) {
-                // Quadrante 0
-                return  y / (ax + ay);
-            } else {
-                // Quadrante 3
-                return static_cast<T>(3) + x / (ax + ay);
-            }
-        } else {
-            if (y >= T{}) {
-                // Quadrante 1
-                return static_cast<T>(1) + ax / (ax + ay);
-            } else {
-                // Quadrante 2
-                return static_cast<T>(2) + ay / (ax + ay);
-            }
-        }
-    }
-
-    std::expected<T, Error> pseudoangleAlt() const
-    {
-        static_assert(N == 2, "pseudoangle is only defined for 2D vectors");
-        
-        constexpr T eps = get_epsilon();
-        
-        const T x = m_data[0];
-        const T y = m_data[1];
-        
         // Check for zero vector
         if (std::abs(x) <= eps && std::abs(y) <= eps) {
             return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
@@ -259,6 +223,42 @@ public:
                 return (x >= 0) ? static_cast<T>(2) - t : static_cast<T>(2) + t;
             } else {
                 return (x >= 0) ? static_cast<T>(6) + t : static_cast<T>(6) - t;
+            }
+        }
+    }
+
+    std::expected<T, Error> pseudoangleAlt() const
+    {
+        static_assert(N == 2, "pseudoangle is only defined for 2D vectors");
+        
+        constexpr T eps = get_epsilon();
+        
+        const T x = m_data[0];
+        const T y = m_data[1];
+        
+        auto ax = std::abs(x);
+        auto ay = std::abs(y);
+
+        if (std::abs(x) <= eps && std::abs(y) <= eps) {
+            return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
+        }
+
+
+        if (x >= T{}) {
+            if (y >= T{}) {
+                // Quadrante 0
+                return  y / (ax + ay);
+            } else {
+                // Quadrante 3
+                return static_cast<T>(3) + x / (ax + ay);
+            }
+        } else {
+            if (y >= T{}) {
+                // Quadrante 1
+                return static_cast<T>(1) + ax / (ax + ay);
+            } else {
+                // Quadrante 2
+                return static_cast<T>(2) + ay / (ax + ay);
             }
         }
     }
@@ -341,6 +341,19 @@ template <typename T, T EPS>
 std::expected<T, Error> pseudoangle(const VecN<T, 2, EPS>& v) noexcept
 {
     return v.pseudoangle();
+}
+
+template <typename T, T EPS>
+std::expected<T, Error> pseudoangleBetween(const VecN<T, 2, EPS>& v0, const VecN<T, 2, EPS>& v1) noexcept
+{
+    auto v0_pseudoangle = v0.pseudoangle();
+    auto v1_pseudoangle = v1.pseudoangle();
+
+    if (!v0_pseudoangle.has_value() || !v1_pseudoangle.has_value()) {
+        return std::expected<T, Error>(std::unexpected(Error::make("One or both vectors are zero")));
+    }
+
+    return v1_pseudoangle.value() - v0_pseudoangle.value();
 }
 
 template <typename T, T EPS>

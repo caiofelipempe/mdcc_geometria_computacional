@@ -10,30 +10,12 @@
 #include <stdexcept>
 #include <chrono>
 
-static Renderer* s_instance = nullptr;
 
-Renderer::Renderer(int w, int h, const std::string& t)
-    : m_width(w), m_height(h), m_title(t) {
+Renderer::Renderer() {}
 
-    s_instance = this;
-    m_input = new InputState();
+Renderer::~Renderer() {}
 
-    initGLFW();
-    initImGui();
-    onInit();
-}
-
-Renderer::~Renderer() {
-    onShutdown();
-    shutdownImGui();
-
-    glfwDestroyWindow(m_window);
-    glfwTerminate();
-
-    delete m_input;
-}
-
-void Renderer::initGLFW() {
+void Renderer::initGLFW(const int w, const int h, const std::string& t) {
     if (!glfwInit())
         throw std::runtime_error("Erro ao iniciar GLFW");
 
@@ -42,18 +24,22 @@ void Renderer::initGLFW() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     m_window = glfwCreateWindow(
-        m_width, m_height, m_title.c_str(), nullptr, nullptr);
+        w, h, t.c_str(), nullptr, nullptr);
 
     if (!m_window)
         throw std::runtime_error("Erro ao criar janela");
 
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(1);
+    
+    glViewport(0, 0, w, h);
 
     glfwSetKeyCallback(m_window, keyCallback);
     glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
     glfwSetCursorPosCallback(m_window, cursorPosCallback);
     glfwSetScrollCallback(m_window, scrollCallback);
+    glfwSetWindowSizeCallback(m_window, windowSizeCallback);
+    glfwSetWindowUserPointer(m_window, this);
 }
 
 void Renderer::initImGui() {
@@ -71,7 +57,11 @@ void Renderer::shutdownImGui() {
     ImGui::DestroyContext();
 }
 
-void Renderer::run() {
+void Renderer::run(const int w, const int h, const std::string& t) {
+    initGLFW(w, h, t);
+    initImGui();
+    onInit(w, h, t);
+
     using clock = std::chrono::high_resolution_clock;
     auto last = clock::now();
 
@@ -81,7 +71,7 @@ void Renderer::run() {
         last = now;
 
         glfwPollEvents();
-        m_input->resetFrameData();
+        m_input.resetFrameData();
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -99,14 +89,21 @@ void Renderer::run() {
 
         glfwSwapBuffers(m_window);
     }
+
+    onShutdown();
+    shutdownImGui();
+
+    glfwDestroyWindow(m_window);
+    m_window = nullptr;
+    glfwTerminate();
 }
 
 const InputState& Renderer::input() const {
-    return *m_input;
+    return m_input;
 }
 
 // Implementação das funções virtuais (com implementações vazias)
-void Renderer::onInit() {
+void Renderer::onInit(const int initialWidth, const int initialHeight, const std::string& initialTitle) {
 }
 
 void Renderer::onUpdate(float dt) {
@@ -118,28 +115,46 @@ void Renderer::onUI() {
 void Renderer::onShutdown() {
 }
 
+void Renderer::onWindowResize(int width, int height) {
+}
+
 // Callbacks estáticos
 void Renderer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (!s_instance) return;
+    Renderer* instance = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!instance) return;
+
     if (key >= 0 && key < 512) {
-        s_instance->m_input->keys[key] = action != GLFW_RELEASE;
+        instance->m_input.keys[key] = action != GLFW_RELEASE;
     }
 }
 
 void Renderer::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (!s_instance) return;
+    Renderer* instance = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!instance) return;
+
     if (button >= 0 && button < 8) {
-        s_instance->m_input->mouseButtons[button] = action == GLFW_PRESS;
+        instance->m_input.mouseButtons[button] = action == GLFW_PRESS;
     }
 }
 
 void Renderer::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-    if (!s_instance) return;
-    s_instance->m_input->mouseX = xpos;
-    s_instance->m_input->mouseY = ypos;
+    Renderer* instance = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!instance) return;
+
+    instance->m_input.mouseX = xpos;
+    instance->m_input.mouseY = ypos;
 }
 
 void Renderer::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    if (!s_instance) return;
-    s_instance->m_input->scrollOffset = yoffset;
+    Renderer* instance = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!instance) return;
+
+    instance->m_input.scrollOffset = yoffset;
+}
+
+void Renderer::windowSizeCallback(GLFWwindow* window, int width, int height) {
+    Renderer* instance = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!instance) return;
+
+    instance->onWindowResize(width, height);
 }

@@ -1,12 +1,16 @@
 #include "renderer.hpp"
 #include "input.h"
+#include "vecn.hpp"
 
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
 
+typedef geometry::VecN<float, 2> Vec2;
+
 enum Questoes {
-    QUESTAO_1 = 1,
+    NO_SELECTION = 0,
+    QUESTAO_1,
     QUESTAO_2,
     QUESTAO_3,
     QUESTAO_4,
@@ -15,13 +19,29 @@ enum Questoes {
 };
 
 class Trabalho02 : public Renderer {
+private:
+    int m_width;
+    int m_height;
+
+    Vec2 m_vec0;
+    Vec2 m_vec1;
+
 public:
     using Renderer::Renderer;
 
 protected:
     Questoes m_questao = QUESTAO_1;
 
-    void onInit() override {
+    void onInit(const int initialWidth, const int initialHeight, const std::string& initialTitle) override {
+        m_height = initialHeight;
+        m_width = initialWidth;
+    }
+
+    void onWindowResize(int width, int height) override {
+        m_height = height;
+        m_width = width;
+
+        glViewport(0, 0, width, height);
     }
 
     void onUpdate(float dt) override {
@@ -38,6 +58,8 @@ protected:
         case Questoes::QUESTAO_1:
             drawHorizontalLine();
             drawVerticalLine();
+            drawVectorLine(m_vec0);
+            drawVectorLine(m_vec1);
             break;
         case Questoes::QUESTAO_2:
             // TODO: Implementar update da questão 2.
@@ -60,38 +82,46 @@ protected:
     }
 
     void onUI() override {
+#ifndef NDEBUG
         ImGui::Begin("Debug");
         ImGui::Text("Mouse: %.1f %.1f",
             input().mouseX,
             input().mouseY);
         ImGui::End();
+#endif
 
-        ImGui::Begin("Questões");
-        ImGui::Text("Questão %d", m_questao);
-        if(ImGui::Button("Questão 1")) {
-            m_questao = QUESTAO_1;
+        static const char* items[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
+        static int selected_item = m_questao - 1;
+        ImGui::Begin(std::string("Questão ").append(std::to_string(m_questao)).c_str());
+        ImGui::Text("Selecione a questão:");
+        if (ImGui::Combo("", &selected_item, items, IM_ARRAYSIZE(items))) {
+            m_questao = static_cast<Questoes>(selected_item + 1);
         }
-        if(ImGui::Button("Questão 2")) {
-            m_questao = QUESTAO_2;
-        }
-        if(ImGui::Button("Questão 3")) {
-            m_questao = QUESTAO_3;
-        }
-        if(ImGui::Button("Questão 4")) {
-            m_questao = QUESTAO_4;
-        }
-        if(ImGui::Button("Questão 5")) {
-            m_questao = QUESTAO_5;
-        }
-        if(ImGui::Button("Questão 6")) {
-            m_questao = QUESTAO_6;
-        }
-        ImGui::End();
-
+        ImGui::Separator();
         switch (m_questao)
         {
         case Questoes::QUESTAO_1:
-            // TODO: Implementar UI da questão 1.
+            {
+                auto pseudoangle0 = m_vec0.pseudoangle();
+                auto pseudoangle1 = m_vec1.pseudoangle();
+                ImGui::Text("Vetor 1:");
+                ImGui::SliderFloat2("", &m_vec0[0], -1.0f, 1.0f);
+                pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo de vetor1: %f", pseudoangle0.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor1: N/A");
+                ImGui::Separator();
+                ImGui::Text("Vetor 2:");
+                ImGui::SliderFloat2("Vetor 2", &m_vec1[0], -1.0f, 1.0f);
+                pseudoangle1.has_value() ? ImGui::Text("Pseudoangulo de vetor2: %f", pseudoangle1.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor2: N/A");
+                ImGui::Separator();
+                if (pseudoangle0.has_value() && pseudoangle1.has_value()) {
+                    ImGui::Text("Diferença entre pseudoângulos: %f", pseudoangle0.value() - pseudoangle1.value());
+                    if (m_vec0.pseudoangle_less(m_vec1))
+                        ImGui::Text("Vetor 1 está a direita de 2");
+                    else if (m_vec1.pseudoangle_less(m_vec0))
+                        ImGui::Text("Vetor 1 está a esquerda de 2");
+                    else
+                        ImGui::Text("Vetor 1 e vetor 2 têm ângulos iguais");
+                }
+            }
             break;
         case Questoes::QUESTAO_2:
             // TODO: Implementar UI da questão 2.
@@ -111,6 +141,7 @@ protected:
         default:
             break;
         }
+        ImGui::End();
     }
 
     void onShutdown() override {
@@ -133,9 +164,25 @@ private:
         glEnd();
     }
 
+    void drawVectorLine(const Vec2& v) {
+        float h = 1.0f;
+        float w = 1.0f;
+        if(m_width > m_height) {
+            w = static_cast<float>(m_height) / static_cast<float>(m_width);
+        } else {
+            h = static_cast<float>(m_width) / static_cast<float>(m_height);
+        }
+
+        glColor3f(1.0f, 0.0f, 0.0f);  // Vermelho
+        glBegin(GL_LINES);
+        glVertex2f(0.0f, 0.0f);
+        glVertex2f(v[0] * w, v[1] * h);
+        glEnd();
+    }
+
 };
 
 int main() {
-    Trabalho02 app(800, 600, "Trabalho 02");
-    app.run();
+    Trabalho02 app;
+    app.run(800, 600, "Trabalho 02 - Geometria Computacional");
 }

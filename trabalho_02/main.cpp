@@ -118,7 +118,7 @@ protected:
                 pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo de vetor1: %f", pseudoangle0.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor1: N/A");
                 ImGui::Separator();
                 ImGui::Text("Vetor 2:");
-                ImGui::SliderFloat2("Vetor 2", &m_q1_vec1[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("", &m_q1_vec1[0], -1.0f, 1.0f);
                 pseudoangle1.has_value() ? ImGui::Text("Pseudoangulo de vetor2: %f", pseudoangle1.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor2: N/A");
                 ImGui::Separator();
                 if (pseudoangle_diff.has_value()) {

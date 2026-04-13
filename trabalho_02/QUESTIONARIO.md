@@ -8,6 +8,44 @@
 #### *Se os vetores são ortogonais, então q(a, b) deve ser 2 ou 6. Para a estar à esquerda de b, o valor deve ser maior do que 4, descartando então o valor 2.*
 ## **Questão 2:**
 ### Implemente outros tipos de pseudo-ângulos, baseados em cossenos ou não e compare os resultados com o pseudo-ângulo da questào anterior,analisando os resultados obtidos. Para essa comparação tente ordenar um conjunto de ângulos e compare os resultados obtidos.
+#### *A implementação alternativas do pseudoângulo que foi implementada no projeto também usa tangente e cotangente, mas de uma forma diferente para dividir em uqatro uqadrante ao invés de 8. O código ficou desta forma:*
+#### 
+    'std::expected<T, Error> pseudoangleAlt() const
+    {
+        static_assert(N == 2, "pseudoangle is only defined for 2D vectors");
+        
+        constexpr T eps = get_epsilon();
+        
+        const T x = m_data[0];
+        const T y = m_data[1];
+        
+        auto ax = std::abs(x);
+        auto ay = std::abs(y);
+
+        if (std::abs(x) <= eps && std::abs(y) <= eps) {
+            return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
+        }
+
+
+        if (x >= T{}) {
+            if (y >= T{}) {
+                // Quadrante 0
+                return  y / (ax + ay);
+            } else {
+                // Quadrante 3
+                return static_cast<T>(3) + x / (ax + ay);
+            }
+        } else {
+            if (y >= T{}) {
+                // Quadrante 1
+                return static_cast<T>(1) + ax / (ax + ay);
+            } else {
+                // Quadrante 2
+                return static_cast<T>(2) + ay / (ax + ay);
+            }
+        }
+    }`
+#### *O retorno desta versão alternativa tem o intervalo [0, 4).*
 ## **Questão 3:**
 ### Implemente todas as operações com vetores, desde soma até produto escalar, testando com vetores escolhidos aleatoriamente (inclua casos patológicos como (vetores colineares, etc)).
 ## **Questão 4:**

@@ -196,9 +196,46 @@ public:
         const T x = m_data[0];
         const T y = m_data[1];
         
-        // Check for zero vector
-        if (std::abs(x) <= eps && std::abs(y) <= eps)
+        auto ax = std::abs(x);
+        auto ay = std::abs(y);
+
+        if (std::abs(x) <= eps && std::abs(y) <= eps) {
             return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
+        }
+
+
+        if (x >= T{}) {
+            if (y >= T{}) {
+                // Quadrante 0
+                return  y / (ax + ay);
+            } else {
+                // Quadrante 3
+                return static_cast<T>(3) + x / (ax + ay);
+            }
+        } else {
+            if (y >= T{}) {
+                // Quadrante 1
+                return static_cast<T>(1) + ax / (ax + ay);
+            } else {
+                // Quadrante 2
+                return static_cast<T>(2) + ay / (ax + ay);
+            }
+        }
+    }
+
+    std::expected<T, Error> pseudoangleAlt() const
+    {
+        static_assert(N == 2, "pseudoangle is only defined for 2D vectors");
+        
+        constexpr T eps = get_epsilon();
+        
+        const T x = m_data[0];
+        const T y = m_data[1];
+        
+        // Check for zero vector
+        if (std::abs(x) <= eps && std::abs(y) <= eps) {
+            return std::expected<T, Error>(std::unexpected(Error::make("Vector is zero")));
+        }
         
         const T ax = std::abs(x);
         const T ay = std::abs(y);
@@ -206,16 +243,23 @@ public:
         
         // Map angle to continuous range [0, 8)
         // using the formula that divides the plane into 8 octants
-        if (x >= 0)
+        if (ax >= ay)
         {
-            // Right half-plane
-            return (y >= 0) ? ay / sum : static_cast<T>(8) - ay / sum;
+            auto t = ay/ax;
+            if(x >= 0) {
+                return (y >= 0) ? t : static_cast<T>(8) - t;
+            } else {
+                return (y >= 0) ? static_cast<T>(4) - t : static_cast<T>(4) + t;
+            }
         }
         else
         {
-            // Left half-plane
-            return (y >= 0) ? static_cast<T>(4) - ax / sum 
-                            : static_cast<T>(4) + ay / sum;
+            auto t = ax/ay;
+            if(y >= 0) {
+                return (x >= 0) ? static_cast<T>(2) - t : static_cast<T>(2) + t;
+            } else {
+                return (x >= 0) ? static_cast<T>(6) + t : static_cast<T>(6) - t;
+            }
         }
     }
     

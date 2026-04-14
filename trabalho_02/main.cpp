@@ -87,22 +87,14 @@ protected:
             break;
         case Questoes::QUESTAO_3:
             {
-                float l1 = m_q3_vec0.length_squared();
-                float l2 = m_q3_vec1.length_squared();
-                float lr = m_q3_selectedOperacaoItem < 2 ? m_q3_vecr.length_squared() : m_q3_prodr*m_q3_prodr;
-                float f = 1;
-                if(l1 > 1 || l2 > 1 || lr > 1) {
-                    f = std::max(lr, std::max(l1, l2));
-                }
-
                 drawHorizontalLine();
                 drawVerticalLine();
-                drawVectorLine(m_q3_vec0/f, 0.0, 1.0, 0.0);
-                drawVectorLine(m_q3_vec1/f, 0.0, 0.0, 1.0);
+                drawVectorLine(m_q3_vec0/2, 0.0, 1.0, 0.0);
+                drawVectorLine(m_q3_vec1/2, 0.0, 0.0, 1.0);
                 if (m_q3_selectedOperacaoItem == 0 || m_q3_selectedOperacaoItem == 1) {
-                    drawVectorLine(m_q3_vecr/f, 1.0, 1.0, 0.0);
+                    drawVectorLine(m_q3_vecr/2, 1.0, 1.0, 0.0);
                 } else if (m_q3_selectedOperacaoItem == 2 || m_q3_selectedOperacaoItem == 3) {
-                    DrawCircle(0.0, 0.0, m_q3_prodr/f, 20, 1.0, 1.0, 0.0);
+                    DrawCircle(0.0, 0.0, m_q3_prodr/2, 20, 1.0, 1.0, 0.0);
                 }
             }
             break;

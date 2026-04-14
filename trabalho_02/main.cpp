@@ -5,6 +5,7 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
+#include <random>
 
 typedef geometry::VecN<float, 2> Vec2;
 
@@ -22,11 +23,23 @@ class Trabalho02 : public Renderer {
 private:
     int m_width;
     int m_height;
+    static const char* items[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
+    int selected_item = m_questao - 1;
 
+    // Variaveis da Questão 1
     Vec2 m_q1_vec0;
     Vec2 m_q1_vec1;
 
+    // Variaveis da Questão 2
     Vec2 m_q2_vec;
+
+    // Variaveis da Questão 3
+    static const char* m_q3_operacaoItems[] = { "Soma", "Subtração", "Produto Vetorial", "Produto Scalar" };
+    int m_q3_selectedOperacaoItem = 0;
+    Vec2 m_q3_vec0;
+    Vec2 m_q3_vec1;
+    Vec2 m_q3_vecr;
+    float m_q3_prodr;
 
 public:
     using Renderer::Renderer;
@@ -59,30 +72,61 @@ protected:
         {
         case Questoes::QUESTAO_1:
             {
+                float l1 = m_q1_vec0.length_squared();
+                float l2 = m_q1_vec1.length_squared();
+                float f = 1;
+                if(l1 > 1 || l2 > 1 || lr > 1) {
+                    f = std::max(l1, l2);
+                }
+
                 drawHorizontalLine();
                 drawVerticalLine();
-                drawVectorLine(m_q1_vec0);
-                drawVectorLine(m_q1_vec1);
+                drawVectorLine(m_q1_vec0/f, 0.0, 1.0, 0.0);
+                drawVectorLine(m_q1_vec1/f, 0.0, 0.0, 1.0);
             }
             break;
         case Questoes::QUESTAO_2:
             {
                 drawHorizontalLine();
                 drawVerticalLine();
-                drawVectorLine(m_q2_vec);
+                drawVectorLine(m_q2_vec, 0.0, 1.0, 0.0);
             }
             break;
         case Questoes::QUESTAO_3:
-            // TODO: Implementar update da questão 3.
+            {
+                float l1 = m_q3_vec0.length_squared();
+                float l2 = m_q3_vec1.length_squared();
+                float lr = m_q3_selectedOperacaoItem < 2 ? m_q3_vecr.length_squared() : m_q3_prodr*m_q3_prodr;
+                float f = 1;
+                if(l1 > 1 || l2 > 1 || lr > 1) {
+                    f = std::max(lr, std::max(l1, l2));
+                }
+
+                drawHorizontalLine();
+                drawVerticalLine();
+                drawVectorLine(m_q3_vec0/f, 0.0, 1.0, 0.0);
+                drawVectorLine(m_q3_vec1/f, 0.0, 0.0, 1.0);
+                if (m_q3_selectedOperacaoItem == 0 || m_q3_selectedOperacaoItem == 1) {
+                    drawVectorLine(m_q3_vecr/f, 1.0, 1.0, 0.0);
+                } else if (m_q3_selectedOperacaoItem == 2 || m_q3_selectedOperacaoItem == 3) {
+                    DrawCircle(0.0, 0.0, m_q3_prodr/f, 20, , 1.0, 1.0, 0.0);
+                }
+            }
             break;
         case Questoes::QUESTAO_4:
-            // TODO: Implementar update da questão 4.
+            {
+                // TODO: Implementar update da questão 4.
+            }
             break;
         case Questoes::QUESTAO_5:
-            // TODO: Implementar update da questão 5.
+            {
+                // TODO: Implementar update da questão 5.
+            }
             break;
         case Questoes::QUESTAO_6:
-            // TODO: Implementar update da questão 6.
+            {
+                // TODO: Implementar update da questão 6.
+            }
             break;
         default:
             break;
@@ -98,8 +142,6 @@ protected:
         ImGui::End();
 #endif
 
-        static const char* items[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
-        static int selected_item = m_questao - 1;
         ImGui::Begin(std::string("Questão ").append(std::to_string(m_questao)).c_str());
         ImGui::Text("Selecione a questão:");
         if (ImGui::Combo("", &selected_item, items, IM_ARRAYSIZE(items))) {
@@ -146,7 +188,52 @@ protected:
             }
             break;
         case Questoes::QUESTAO_3:
-            // TODO: Implementar UI da questão 3.
+            {
+                ImGui::Text("Selecione a operação:");
+                ImGui::Combo("", &m_q3_selectedOperacaoItem, m_q3_operacaoItems, IM_ARRAYSIZE(m_q3_operacaoItems));
+                ImGui::Text("Vetor 1:");
+                ImGui::SliderFloat2("", &m_q3_vec0[0], -1.0f, 1.0f);
+                ImGui::Separator();
+                ImGui::Text("Vetor 2:");
+                ImGui::SliderFloat2("", &m_q3_vec1[0], -1.0f, 1.0f);
+                ImGui::Separator();
+                if (ImGui::Button("Gerar aleatório")) {
+                    std::random_device rd;
+                    std::mt19937 gen(rd());
+                    std::uniform_int_distribution<> dis(0, 10000);
+                    m_q3_vec0[0] = dis(gen)/10000.0;
+                    m_q3_vec0[1] = dis(gen)/10000.0;
+                    m_q3_vec1[0] = dis(gen)/10000.0;
+                    m_q3_vec1[1] = dis(gen)/10000.0;
+                }
+                ImGui::Separator();
+                switch (m_q3_selectedOperacaoItem) {
+                    case 0:
+                        {
+                            m_q3_vecr = m_q3_vec0 + m_q3_vec1;
+                            ImGui::Text("Resultado da soma: (%f, %f)", m_q3_vecr[0], m_q3_vecr[1]);
+                        }
+                        break;
+                    case 1:
+                        {
+                            m_q3_vecr = m_q3_vec0 - m_q3_vec1;
+                            ImGui::Text("Resultado da subtração: (%f, %f)", m_q3_vecr[0], m_q3_vecr[1]);
+                        }
+                        break;
+                    case 2:
+                        {
+                            m_q3_prodr = m_q3_vec0.cross(m_q3_vec1);
+                            ImGui::Text("Resultado do produto vetorial: %f", m_q3_prodr);
+                        }
+                        break;
+                    case 3:
+                        {
+                            m_q3_prodr = m_q3_vec0.dot(m_q3_vec1);
+                            ImGui::Text("Resultado do produto escalar: %f", m_q3_prodr);
+                        }
+                        break;
+                }
+            }
             break;
         case Questoes::QUESTAO_4:
             // TODO: Implementar UI da questão 4.
@@ -168,7 +255,7 @@ protected:
 
 private:
     void drawHorizontalLine() {
-        glColor3f(0.0f, 1.0f, 0.0f);  // Verde
+        glColor3f(1.0f, 1.0f, 1.0f);  // Verde
         glBegin(GL_LINES);
         glVertex2f(-1.0f, 0.0f);
         glVertex2f(1.0f, 0.0f);
@@ -176,14 +263,14 @@ private:
     }
 
     void drawVerticalLine() {
-        glColor3f(1.0f, 1.0f, 0.0f);  // Amarelo
+        glColor3f(1.0f, 1.0f, 1.0f);  // Amarelo
         glBegin(GL_LINES);
         glVertex2f(0.0f, -1.0f);
         glVertex2f(0.0f, 1.0f);
         glEnd();
     }
 
-    void drawVectorLine(const Vec2& v) {
+    void drawVectorLine(const Vec2& v, float r = 1.0, float g = 1.0, float b = 0) {
         float h = 1.0f;
         float w = 1.0f;
         if(m_width > m_height) {
@@ -192,10 +279,21 @@ private:
             h = static_cast<float>(m_width) / static_cast<float>(m_height);
         }
 
-        glColor3f(1.0f, 0.0f, 0.0f);  // Vermelho
+        glColor3f(r, g, b);  // Vermelho
         glBegin(GL_LINES);
         glVertex2f(0.0f, 0.0f);
         glVertex2f(v[0] * w, v[1] * h);
+        glEnd();
+    }
+
+    void DrawCircle(float cx, float cy, float r, int num_segments, float r = 0.0, float g = 0.0, float b = 1.0) {
+        glBegin(GL_LINE_LOOP);
+        for (int ii = 0; ii < num_segments; ii++)   {
+            float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
+            float x = r * cosf(theta);//calculate the x component 
+            float y = r * sinf(theta);//calculate the y component 
+            glVertex2f(x + cx, y + cy);//output vertex 
+        }
         glEnd();
     }
 

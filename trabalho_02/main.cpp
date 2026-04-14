@@ -56,7 +56,7 @@ protected:
         m_height = height;
         m_width = width;
 
-        glViewport(0, 0, width, height);
+        glViewport(100, 0, width, height);
     }
 
     void onUpdate(float dt) override {
@@ -127,7 +127,9 @@ protected:
         ImGui::End();
 #endif
 
-        ImGui::Begin(std::string("Questão ").append(std::to_string(m_questao)).c_str());
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2(200, m_height));
+        ImGui::Begin("##main_pannel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
         ImGui::Text("Selecione a questão:");
         if (ImGui::Combo("", &questaoSelectedItem, questaoItems, IM_ARRAYSIZE(questaoItems))) {
             m_questao = static_cast<Questoes>(questaoSelectedItem + 1);
@@ -185,7 +187,7 @@ protected:
                 if (ImGui::Button("Gerar aleatório")) {
                     std::random_device rd;
                     std::mt19937 gen(rd());
-                    std::uniform_int_distribution<> dis(0, 10000);
+                    std::uniform_int_distribution<> dis(-10000, 10000);
                     m_q3_vec0[0] = dis(gen)/10000.0;
                     m_q3_vec0[1] = dis(gen)/10000.0;
                     m_q3_vec1[0] = dis(gen)/10000.0;
@@ -242,8 +244,8 @@ private:
     void drawHorizontalLine() {
         glColor3f(1.0f, 1.0f, 1.0f);  // Verde
         glBegin(GL_LINES);
-        glVertex2f(-1.0f, 0.0f);
-        glVertex2f(1.0f, 0.0f);
+        glVertex2f(-1.0f + 200.0f/m_width, 0.0f);
+        glVertex2f(1.0f - 200.0f/m_width, 0.0f);
         glEnd();
     }
 

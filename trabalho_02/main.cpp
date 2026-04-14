@@ -23,8 +23,8 @@ class Trabalho02 : public Renderer {
 private:
     int m_width;
     int m_height;
-    static const char* items[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
-    int selected_item = m_questao - 1;
+    static constexpr const char* questaoItems[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
+    int questaoSelectedItem = m_questao;
 
     // Variaveis da Questão 1
     Vec2 m_q1_vec0;
@@ -34,7 +34,7 @@ private:
     Vec2 m_q2_vec;
 
     // Variaveis da Questão 3
-    static const char* m_q3_operacaoItems[] = { "Soma", "Subtração", "Produto Vetorial", "Produto Scalar" };
+    static constexpr const char* m_q3_operacaoItems[] = { "Soma", "Subtração", "Produto Vetorial", "Produto Scalar" };
     int m_q3_selectedOperacaoItem = 0;
     Vec2 m_q3_vec0;
     Vec2 m_q3_vec1;
@@ -72,17 +72,10 @@ protected:
         {
         case Questoes::QUESTAO_1:
             {
-                float l1 = m_q1_vec0.length_squared();
-                float l2 = m_q1_vec1.length_squared();
-                float f = 1;
-                if(l1 > 1 || l2 > 1 || lr > 1) {
-                    f = std::max(l1, l2);
-                }
-
                 drawHorizontalLine();
                 drawVerticalLine();
-                drawVectorLine(m_q1_vec0/f, 0.0, 1.0, 0.0);
-                drawVectorLine(m_q1_vec1/f, 0.0, 0.0, 1.0);
+                drawVectorLine(m_q1_vec0, 0.0, 1.0, 0.0);
+                drawVectorLine(m_q1_vec1, 0.0, 0.0, 1.0);
             }
             break;
         case Questoes::QUESTAO_2:
@@ -109,7 +102,7 @@ protected:
                 if (m_q3_selectedOperacaoItem == 0 || m_q3_selectedOperacaoItem == 1) {
                     drawVectorLine(m_q3_vecr/f, 1.0, 1.0, 0.0);
                 } else if (m_q3_selectedOperacaoItem == 2 || m_q3_selectedOperacaoItem == 3) {
-                    DrawCircle(0.0, 0.0, m_q3_prodr/f, 20, , 1.0, 1.0, 0.0);
+                    DrawCircle(0.0, 0.0, m_q3_prodr/f, 20, 1.0, 1.0, 0.0);
                 }
             }
             break;
@@ -144,8 +137,8 @@ protected:
 
         ImGui::Begin(std::string("Questão ").append(std::to_string(m_questao)).c_str());
         ImGui::Text("Selecione a questão:");
-        if (ImGui::Combo("", &selected_item, items, IM_ARRAYSIZE(items))) {
-            m_questao = static_cast<Questoes>(selected_item + 1);
+        if (ImGui::Combo("", &questaoSelectedItem, questaoItems, IM_ARRAYSIZE(questaoItems))) {
+            m_questao = static_cast<Questoes>(questaoSelectedItem + 1);
         }
         ImGui::Separator();
         switch (m_questao)
@@ -156,11 +149,11 @@ protected:
                 auto pseudoangle1 = m_q1_vec1.pseudoangle();
                 auto pseudoangle_diff = geometry::pseudoangleBetween(m_q1_vec0, m_q1_vec1);
                 ImGui::Text("Vetor 1:");
-                ImGui::SliderFloat2("", &m_q1_vec0[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("##m_q1_vec0", &m_q1_vec0[0], -1.0f, 1.0f);
                 pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo de vetor1: %f", pseudoangle0.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor1: N/A");
                 ImGui::Separator();
                 ImGui::Text("Vetor 2:");
-                ImGui::SliderFloat2("", &m_q1_vec1[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("##m_q1_vec1", &m_q1_vec1[0], -1.0f, 1.0f);
                 pseudoangle1.has_value() ? ImGui::Text("Pseudoangulo de vetor2: %f", pseudoangle1.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor2: N/A");
                 ImGui::Separator();
                 if (pseudoangle_diff.has_value()) {
@@ -179,7 +172,7 @@ protected:
                 auto pseudoangle0 = m_q2_vec.pseudoangle();
                 auto pseudoangle1 = m_q2_vec.pseudoangleAlt();
                 ImGui::Text("Vetor:");
-                ImGui::SliderFloat2("", &m_q2_vec[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("##m_q2_vec", &m_q2_vec[0], -1.0f, 1.0f);
                 pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo: %f\nPseudoangulo alternativo: %f", pseudoangle0.value_or(-1.0f), pseudoangle1.value_or(-1.0f)) : ImGui::Text("Vetor invalido para cálculo de pseudoângulo");
                 ImGui::Separator();
                 if (ImGui::CollapsingHeader("Explicação")) {
@@ -190,12 +183,12 @@ protected:
         case Questoes::QUESTAO_3:
             {
                 ImGui::Text("Selecione a operação:");
-                ImGui::Combo("", &m_q3_selectedOperacaoItem, m_q3_operacaoItems, IM_ARRAYSIZE(m_q3_operacaoItems));
+                ImGui::Combo("##m_q3_selectedOperacaoItem", &m_q3_selectedOperacaoItem, m_q3_operacaoItems, IM_ARRAYSIZE(m_q3_operacaoItems));
                 ImGui::Text("Vetor 1:");
-                ImGui::SliderFloat2("", &m_q3_vec0[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("##m_q3_vec0", &m_q3_vec0[0], -1.0f, 1.0f);
                 ImGui::Separator();
                 ImGui::Text("Vetor 2:");
-                ImGui::SliderFloat2("", &m_q3_vec1[0], -1.0f, 1.0f);
+                ImGui::SliderFloat2("##m_q3_vec1", &m_q3_vec1[0], -1.0f, 1.0f);
                 ImGui::Separator();
                 if (ImGui::Button("Gerar aleatório")) {
                     std::random_device rd;
@@ -222,7 +215,7 @@ protected:
                         break;
                     case 2:
                         {
-                            m_q3_prodr = m_q3_vec0.cross(m_q3_vec1);
+                            m_q3_prodr = cross(m_q3_vec0, m_q3_vec1);
                             ImGui::Text("Resultado do produto vetorial: %f", m_q3_prodr);
                         }
                         break;
@@ -286,12 +279,13 @@ private:
         glEnd();
     }
 
-    void DrawCircle(float cx, float cy, float r, int num_segments, float r = 0.0, float g = 0.0, float b = 1.0) {
+    void DrawCircle(float cx, float cy, float radius, int num_segments, float r = 0.0, float g = 0.0, float b = 1.0) {
         glBegin(GL_LINE_LOOP);
+        glColor3f(r, g, b);
         for (int ii = 0; ii < num_segments; ii++)   {
             float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-            float x = r * cosf(theta);//calculate the x component 
-            float y = r * sinf(theta);//calculate the y component 
+            float x = radius * cosf(theta);//calculate the x component 
+            float y = radius * sinf(theta);//calculate the y component 
             glVertex2f(x + cx, y + cy);//output vertex 
         }
         glEnd();

@@ -104,8 +104,7 @@ private:
     // ─────────────────────────────────────────
 protected:
     void onInit(const int initialWidth, const int initialHeight, const std::string& /*title*/) override {
-        m_width  = initialWidth;
-        m_height = initialHeight;
+            onWindowResize(initialWidth, initialHeight);
     }
 
     void onWindowResize(int width, int height) override {
@@ -116,6 +115,9 @@ protected:
 
     // onUpdate: apenas lógica de estado — sem cálculos dentro do onUI
     void onUpdate(float /*dt*/) override {
+        auto canvasOrigin = Vec2({PANEL_WIDTH, 0});
+        auto canvasCenter = Vec2({static_cast<float>(PANEL_WIDTH + (m_width - PANEL_WIDTH) / 2), static_cast<float>(m_height) / 2.0f});
+
         switch (m_questao) {
         case Questao::Q1:
             renderQ1();
@@ -335,15 +337,11 @@ private:
     // ─────────────────────────────────────────
     void drawAxes() {
         glColor3f(1.0f, 1.0f, 1.0f);
-
-        // eixo horizontal (considera largura do painel)
-        const float xLeft = -1.0f + static_cast<float>(PANEL_WIDTH) / static_cast<float>(m_width) * 2.0f;
         glBegin(GL_LINES);
-        glVertex2f(xLeft,  0.0f);
+        glVertex2f(-1.0f,  0.0f);
         glVertex2f( 1.0f,  0.0f);
         glEnd();
 
-        // eixo vertical
         glBegin(GL_LINES);
         glVertex2f(0.0f, -1.0f);
         glVertex2f(0.0f,  1.0f);

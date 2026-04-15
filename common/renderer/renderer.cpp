@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <chrono>
+#include <thread>
 
 
 Renderer::Renderer() {}
@@ -94,8 +95,8 @@ void Renderer::run(const int w, const int h, const std::string& t) {
 
         glfwSwapBuffers(m_window);
 
-        nextFrame += std::chrono::duration<double>(frameTime);
-        std::this_thread::sleep_until(nextFrame);
+        auto sleep_until = nextFrame + std::chrono::duration<double>(frameTime);
+        std::this_thread::sleep_until(sleep_until);
     }
 
     onShutdown();

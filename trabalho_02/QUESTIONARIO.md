@@ -65,7 +65,7 @@ std::expected<T, Error> pseudoangleAlt() const
 
 ---
 
-#### **Questão 4:**
+### **Questão 4:**
 #### Implemente produto vetorial e teste com vetores escolhidos aleatoriamente. Implemente também interseção de segmentos e área orientada usando o produto vetorial implementado.
 
 ---

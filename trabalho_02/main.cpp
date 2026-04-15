@@ -12,6 +12,17 @@
 using Vec2 = geometry::VecN<float, 2>;
 
 class Trabalho02 : public Renderer {
+private:
+    enum Questoes {
+        NO_SELECTION = 0,
+        QUESTAO_1,
+        QUESTAO_2,
+        QUESTAO_3,
+        QUESTAO_4,
+        QUESTAO_5,
+        QUESTAO_6
+    };
+    
 public:
     using Renderer::Renderer;
 

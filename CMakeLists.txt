@@ -20,6 +20,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(OpenGL REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(bgfx CONFIG REQUIRED)
 
 # -----------------------------
 # Trabalhos

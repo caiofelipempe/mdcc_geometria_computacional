@@ -5,286 +5,219 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
+
 #include <random>
+#include <cmath>
 
-typedef geometry::VecN<float, 2> Vec2;
-
-enum Questoes {
-    NO_SELECTION = 0,
-    QUESTAO_1,
-    QUESTAO_2,
-    QUESTAO_3,
-    QUESTAO_4,
-    QUESTAO_5,
-    QUESTAO_6
-};
+using Vec2 = geometry::VecN<float, 2>;
 
 class Trabalho02 : public Renderer {
-private:
-    int m_width;
-    int m_height;
-    static constexpr const char* questaoItems[] = { "Questão 1", "Questão 2", "Questão 3", "Questão 4", "Questão 5", "Questão 6" };
-    int questaoSelectedItem = m_questao;
-
-    // Variaveis da Questão 1
-    Vec2 m_q1_vec0;
-    Vec2 m_q1_vec1;
-
-    // Variaveis da Questão 2
-    Vec2 m_q2_vec;
-
-    // Variaveis da Questão 3
-    static constexpr const char* m_q3_operacaoItems[] = { "Soma", "Subtração", "Produto Vetorial", "Produto Scalar" };
-    int m_q3_selectedOperacaoItem = 0;
-    Vec2 m_q3_vec0;
-    Vec2 m_q3_vec1;
-    Vec2 m_q3_vecr;
-    float m_q3_prodr;
-
 public:
     using Renderer::Renderer;
 
 protected:
+    // -----------------------------------
+    // Estado geral
+    // -----------------------------------
+    int m_width  = 0;
+    int m_height = 0;
+
+    float m_panelWidth       = 250.0f;
+    const float m_splitterW  = 6.0f;
+    const float m_minPanelW  = 120.0f;
+    const float m_minCanvasW = 120.0f;
+
     Questoes m_questao = QUESTAO_1;
+    int m_questaoComboIndex = 0;
 
-    void onInit(const int initialWidth, const int initialHeight, const std::string& initialTitle) override {
-        m_height = initialHeight;
-        m_width = initialWidth;
+    // -----------------------------------
+    // Estados das questões
+    // -----------------------------------
+    
+    struct Questao1State {
+        Vec2 vecA {0.5f, 0.2f};
+        Vec2 vecB {0.2f, 0.7f};
+    } m_q1;
+    
+    struct Questao2State {
+        Vec2 vec {0.7f, 0.3f};
+    } m_q2;
+
+    struct Questao3State {
+        int operation = 0;
+        Vec2 vecA {0.4f, 0.1f};
+        Vec2 vecB {0.2f, 0.6f};
+        Vec2 resultVec {};
+        float resultScalar = 0.0f;
+        static constexpr const char* Q3_OPS[] = {
+            "Soma", "Subtração", "Produto Vetorial", "Produto Escalar"
+        };
+    } m_q3;
+
+    static constexpr const char* QUESTOES_LABELS[] = {
+        "Questão 1", "Questão 2", "Questão 3",
+        "Questão 4", "Questão 5", "Questão 6"
+    };
+
+    // -----------------------------------
+    // Ciclo de vida
+    // -----------------------------------
+    void onInit(int w, int h, const std::string&) override {
+        m_width  = w;
+        m_height = h;
     }
 
-    void onWindowResize(int width, int height) override {
-        m_height = height;
-        m_width = width;
-
-        glViewport(100, 0, width, height);
+    void onWindowResize(int w, int h) override {
+        m_width  = w;
+        m_height = h;
+        glViewport(0, 0, w, h);
     }
-
-    void onUpdate(float dt) override {
-        if (input().keys[GLFW_KEY_W]) {
-            // mover câmera para frente
-        }
-
-        if (input().mouseButtons[GLFW_MOUSE_BUTTON_LEFT]) {
-            // interação
-        }
-
-        switch (m_questao)
-        {
-        case Questoes::QUESTAO_1:
-            {
-                drawHorizontalLine();
-                drawVerticalLine();
-                drawVectorLine(m_q1_vec0, 0.0, 1.0, 0.0);
-                drawVectorLine(m_q1_vec1, 0.0, 0.0, 1.0);
-            }
-            break;
-        case Questoes::QUESTAO_2:
-            {
-                drawHorizontalLine();
-                drawVerticalLine();
-                drawVectorLine(m_q2_vec, 0.0, 1.0, 0.0);
-            }
-            break;
-        case Questoes::QUESTAO_3:
-            {
-                drawHorizontalLine();
-                drawVerticalLine();
-                drawVectorLine(m_q3_vec0/2, 0.0, 1.0, 0.0);
-                drawVectorLine(m_q3_vec1/2, 0.0, 0.0, 1.0);
-                if (m_q3_selectedOperacaoItem == 0 || m_q3_selectedOperacaoItem == 1) {
-                    drawVectorLine(m_q3_vecr/2, 1.0, 1.0, 0.0);
-                } else if (m_q3_selectedOperacaoItem == 2 || m_q3_selectedOperacaoItem == 3) {
-                    DrawCircle(0.0, 0.0, m_q3_prodr/2, 20, 1.0, 1.0, 0.0);
-                }
-            }
-            break;
-        case Questoes::QUESTAO_4:
-            {
-                // TODO: Implementar update da questão 4.
-            }
-            break;
-        case Questoes::QUESTAO_5:
-            {
-                // TODO: Implementar update da questão 5.
-            }
-            break;
-        case Questoes::QUESTAO_6:
-            {
-                // TODO: Implementar update da questão 6.
-            }
-            break;
-        default:
-            break;
-        }
-    }
-
-    void onUI() override {
-#ifndef NDEBUG
-        ImGui::Begin("Debug");
-        ImGui::Text("Mouse: %.1f %.1f",
-            input().mouseX,
-            input().mouseY);
+    
+    void onUpdate() override {
+        ImGui::Begin("Editor");
+        drawLayout();
         ImGui::End();
-#endif
+    }
 
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(200, m_height));
-        ImGui::Begin("##main_pannel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
-        ImGui::Text("Selecione a questão:");
-        if (ImGui::Combo("", &questaoSelectedItem, questaoItems, IM_ARRAYSIZE(questaoItems))) {
-            m_questao = static_cast<Questoes>(questaoSelectedItem + 1);
+    // -----------------------------------
+    // Layout
+    // -----------------------------------
+    void drawLayout() {
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+
+        m_panelWidth = ImClamp(
+            m_panelWidth,
+            m_minPanelW,
+            avail.x - m_minCanvasW - m_splitterW
+        );
+
+        drawLeftPanel(avail);
+        drawSplitter(avail);
+        drawCanvas(avail);
+    }
+
+    // -----------------------------------
+    // Painel esquerdo
+    // -----------------------------------
+    void drawLeftPanel(const ImVec2& avail) {
+        ImGui::BeginChild("LeftPanel", {m_panelWidth, avail.y}, true);
+
+        if (ImGui::Combo("Questão", &m_questaoComboIndex,
+                         QUESTOES_LABELS, IM_ARRAYSIZE(QUESTOES_LABELS))) {
+            m_questao = static_cast<Questoes>(m_questaoComboIndex + 1);
         }
+
         ImGui::Separator();
-        switch (m_questao)
-        {
-        case Questoes::QUESTAO_1:
-            {
-                auto pseudoangle0 = m_q1_vec0.pseudoangle();
-                auto pseudoangle1 = m_q1_vec1.pseudoangle();
-                auto pseudoangle_diff = geometry::pseudoangleBetween(m_q1_vec0, m_q1_vec1);
-                ImGui::Text("Vetor 1:");
-                ImGui::SliderFloat2("##m_q1_vec0", &m_q1_vec0[0], -1.0f, 1.0f);
-                pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo de vetor1: %f", pseudoangle0.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor1: N/A");
-                ImGui::Separator();
-                ImGui::Text("Vetor 2:");
-                ImGui::SliderFloat2("##m_q1_vec1", &m_q1_vec1[0], -1.0f, 1.0f);
-                pseudoangle1.has_value() ? ImGui::Text("Pseudoangulo de vetor2: %f", pseudoangle1.value_or(-1.0f)) : ImGui::Text("Pseudoangulo de vetor2: N/A");
-                ImGui::Separator();
-                if (pseudoangle_diff.has_value()) {
-                    ImGui::Text("Diferença entre pseudoângulos: %f", pseudoangle_diff.value() >= 0.0 ? pseudoangle_diff.value() : 8.0 + pseudoangle_diff.value());
-                    if (m_q1_vec0.pseudoangle_less(m_q1_vec1))
-                        ImGui::Text("Vetor 1 está a direita de 2");
-                    else if (m_q1_vec1.pseudoangle_less(m_q1_vec0))
-                        ImGui::Text("Vetor 1 está a esquerda de 2");
-                    else
-                        ImGui::Text("Vetor 1 e vetor 2 têm ângulos iguais");
-                }
-            }
-            break;
-        case Questoes::QUESTAO_2:
-            {
-                auto pseudoangle0 = m_q2_vec.pseudoangle();
-                auto pseudoangle1 = m_q2_vec.pseudoangleAlt();
-                ImGui::Text("Vetor:");
-                ImGui::SliderFloat2("##m_q2_vec", &m_q2_vec[0], -1.0f, 1.0f);
-                pseudoangle0.has_value() ? ImGui::Text("Pseudoangulo: %f\nPseudoangulo alternativo: %f", pseudoangle0.value_or(-1.0f), pseudoangle1.value_or(-1.0f)) : ImGui::Text("Vetor invalido para cálculo de pseudoângulo");
-                ImGui::Separator();
-                if (ImGui::CollapsingHeader("Explicação")) {
-                    ImGui::Text("O pseudoângulo alternativo deve ser igual à metade do pseudoângulo original,\nou seja, deve mapear o plano em uma faixa\nde [0, 4) ao invés de [0, 8).\nO segundo algoritmo é mais simples,\nmas o primeiro pode ser mais preciso em alguns casos,\nespecialmente para vetores próximos aos eixos,\nonde a divisão por valores pequenos pode causar instabilidade numérica.\nNo entanto, ambos os algoritmos devem produzir resultados\nconsistentes para a maioria dos vetores,\ne a escolha entre eles pode depender do contexto específico de uso.\nO algoritmo alternativo calcula o pseudoângulo pelo\nvalor do quadrante + ou - x/(x*y) ou y/(x*y),\nenquanto o algoritmo original calcula o pseudoângulo\nusando uma abordagem que divide o plano em 8 octantes,\nusando tangente e cotangente para o cálculo.");
-                }
-            }
-            break;
-        case Questoes::QUESTAO_3:
-            {
-                ImGui::Text("Selecione a operação:");
-                ImGui::Combo("##m_q3_selectedOperacaoItem", &m_q3_selectedOperacaoItem, m_q3_operacaoItems, IM_ARRAYSIZE(m_q3_operacaoItems));
-                ImGui::Text("Vetor 1:");
-                ImGui::SliderFloat2("##m_q3_vec0", &m_q3_vec0[0], -1.0f, 1.0f);
-                ImGui::Separator();
-                ImGui::Text("Vetor 2:");
-                ImGui::SliderFloat2("##m_q3_vec1", &m_q3_vec1[0], -1.0f, 1.0f);
-                ImGui::Separator();
-                if (ImGui::Button("Gerar aleatório")) {
-                    std::random_device rd;
-                    std::mt19937 gen(rd());
-                    std::uniform_int_distribution<> dis(-10000, 10000);
-                    m_q3_vec0[0] = dis(gen)/10000.0;
-                    m_q3_vec0[1] = dis(gen)/10000.0;
-                    m_q3_vec1[0] = dis(gen)/10000.0;
-                    m_q3_vec1[1] = dis(gen)/10000.0;
-                }
-                ImGui::Separator();
-                switch (m_q3_selectedOperacaoItem) {
-                    case 0:
-                        {
-                            m_q3_vecr = m_q3_vec0 + m_q3_vec1;
-                            ImGui::Text("Resultado da soma: (%f, %f)", m_q3_vecr[0], m_q3_vecr[1]);
-                        }
-                        break;
-                    case 1:
-                        {
-                            m_q3_vecr = m_q3_vec0 - m_q3_vec1;
-                            ImGui::Text("Resultado da subtração: (%f, %f)", m_q3_vecr[0], m_q3_vecr[1]);
-                        }
-                        break;
-                    case 2:
-                        {
-                            m_q3_prodr = cross(m_q3_vec0, m_q3_vec1);
-                            ImGui::Text("Resultado do produto vetorial: %f", m_q3_prodr);
-                        }
-                        break;
-                    case 3:
-                        {
-                            m_q3_prodr = m_q3_vec0.dot(m_q3_vec1);
-                            ImGui::Text("Resultado do produto escalar: %f", m_q3_prodr);
-                        }
-                        break;
-                }
-            }
-            break;
-        case Questoes::QUESTAO_4:
-            // TODO: Implementar UI da questão 4.
-            break;
-        case Questoes::QUESTAO_5:
-            // TODO: Implementar UI da questão 5.
-            break;
-        case Questoes::QUESTAO_6:
-            // TODO: Implementar UI da questão 6.
-            break;
-        default:
-            break;
-        }
-        ImGui::End();
-    }
 
-    void onShutdown() override {
-    }
-
-private:
-    void drawHorizontalLine() {
-        glColor3f(1.0f, 1.0f, 1.0f);  // Verde
-        glBegin(GL_LINES);
-        glVertex2f(-1.0f + 200.0f/m_width, 0.0f);
-        glVertex2f(1.0f - 200.0f/m_width, 0.0f);
-        glEnd();
-    }
-
-    void drawVerticalLine() {
-        glColor3f(1.0f, 1.0f, 1.0f);  // Amarelo
-        glBegin(GL_LINES);
-        glVertex2f(0.0f, -1.0f);
-        glVertex2f(0.0f, 1.0f);
-        glEnd();
-    }
-
-    void drawVectorLine(const Vec2& v, float r = 1.0, float g = 1.0, float b = 0) {
-        float h = 1.0f;
-        float w = 1.0f;
-        if(m_width > m_height) {
-            w = static_cast<float>(m_height) / static_cast<float>(m_width);
-        } else {
-            h = static_cast<float>(m_width) / static_cast<float>(m_height);
+        switch (m_questao) {
+            case QUESTAO_1: drawQ1Panel(); break;
+            case QUESTAO_2: drawQ2Panel(); break;
+            case QUESTAO_3: drawQ3Panel(); break;
+            default: ImGui::Text("Questão não implementada."); break;
         }
 
-        glColor3f(r, g, b);  // Vermelho
-        glBegin(GL_LINES);
-        glVertex2f(0.0f, 0.0f);
-        glVertex2f(v[0] * w, v[1] * h);
-        glEnd();
+        ImGui::EndChild();
     }
 
-    void DrawCircle(float cx, float cy, float radius, int num_segments, float r = 0.0, float g = 0.0, float b = 1.0) {
-        glBegin(GL_LINE_LOOP);
-        glColor3f(r, g, b);
-        for (int ii = 0; ii < num_segments; ii++)   {
-            float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-            float x = radius * cosf(theta);//calculate the x component 
-            float y = radius * sinf(theta);//calculate the y component 
-            glVertex2f(x + cx, y + cy);//output vertex 
+    // -----------------------------------
+    // Painéis por questão
+    // -----------------------------------
+    void drawQ1Panel() {
+        ImGui::Text("Questão 1");
+        ImGui::SliderFloat2("Vetor A", &m_q1.vecA[0], -1.0f, 1.0f);
+        ImGui::SliderFloat2("Vetor B", &m_q1.vecB[0], -1.0f, 1.0f);
+    }
+
+    void drawQ2Panel() {
+        ImGui::Text("Questão 2");
+        ImGui::SliderFloat2("Vetor", &m_q2.vec[0], -1.0f, 1.0f);
+    }
+
+    void drawQ3Panel() {
+        ImGui::Text("Questão 3");
+
+        ImGui::Combo("Operação", &m_q3.operation, m_q3.Q3_OPS, IM_ARRAYSIZE(m_q3.Q3_OPS));
+        ImGui::SliderFloat2("Vetor A", &m_q3.vecA[0], -1.0f, 1.0f);
+        ImGui::SliderFloat2("Vetor B", &m_q3.vecB[0], -1.0f, 1.0f);
+
+        if (ImGui::Button("Gerar aleatório")) {
+            static std::mt19937 gen{std::random_device{}()};
+            static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+            m_q3.vecA = {dis(gen), dis(gen)};
+            m_q3.vecB = {dis(gen), dis(gen)};
         }
-        glEnd();
+
+        switch (m_q3.operation) {
+            case 0: m_q3.resultVec = m_q3.vecA + m_q3.vecB; break;
+            case 1: m_q3.resultVec = m_q3.vecA - m_q3.vecB; break;
+            case 2: m_q3.resultScalar = cross(m_q3.vecA, m_q3.vecB); break;
+            case 3: m_q3.resultScalar = m_q3.vecA.dot(m_q3.vecB); break;
+        }
     }
 
+    // -----------------------------------
+    // Canvas
+    // -----------------------------------
+    void drawCanvas(const ImVec2& avail) {
+        ImGui::SameLine();
+
+        float canvasWidth = avail.x - m_panelWidth - m_splitterW;
+
+        ImGui::BeginChild(
+            "Canvas",
+            {canvasWidth, avail.y},
+            true,
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse
+        );
+
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        ImVec2 pos   = ImGui::GetCursorScreenPos();
+        ImVec2 size  = ImGui::GetContentRegionAvail();
+        ImVec2 center = pos + size * 0.5f;
+
+        ImGui::InvisibleButton("canvas_area", size);
+        draw->AddRectFilled(pos, pos + size, IM_COL32(30, 30, 30, 255));
+
+        float scale = std::min(size.x, size.y) * 0.4f;
+
+        switch (m_questao) {
+            case QUESTAO_1:
+                drawVector(draw, center, m_q1.vecA, scale, IM_COL32(0, 140, 255, 255));
+                drawVector(draw, center, m_q1.vecB, scale, IM_COL32(255, 255, 255, 255));
+                break;
+
+            case QUESTAO_2:
+                drawVector(draw, center, m_q2.vec, scale, IM_COL32(0, 200, 255, 255));
+                break;
+
+            case QUESTAO_3:
+                drawVector(draw, center, m_q3.vecA, scale, IM_COL32(0, 140, 255, 255));
+                drawVector(draw, center, m_q3.vecB, scale, IM_COL32(255, 255, 255, 255));
+
+                if (m_q3.operation < 2)
+                    drawVector(draw, center, m_q3.resultVec, scale, IM_COL32(255, 220, 0, 255));
+                else
+                    draw->AddCircle(center,
+                        std::fabs(m_q3.resultScalar) * scale * 0.1f,
+                        IM_COL32(255, 220, 0, 255), 32, 2.0f);
+                break;
+        }
+
+        ImGui::EndChild();
+    }
+
+    // -----------------------------------
+    // Utilitário gráfico
+    // -----------------------------------
+    void drawVector(ImDrawList* draw, const ImVec2& center,
+                    const Vec2& v, float scale, ImU32 color) {
+        ImVec2 end {
+            center.x + v[0] * scale,
+            center.y - v[1] * scale
+        };
+        draw->AddLine(center, end, color, 2.0f);
+    }
 };
 
 int main() {

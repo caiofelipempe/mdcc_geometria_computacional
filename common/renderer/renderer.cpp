@@ -62,8 +62,13 @@ void Renderer::run(const int w, const int h, const std::string& t) {
     initImGui();
     onInit(w, h, t);
 
-    using clock = std::chrono::high_resolution_clock;
+    using clock = std::chrono::steady_clock;
+
+    const double targetFPS  = 60.0;
+    const double frameTime = 1.0 / targetFPS;
+
     auto last = clock::now();
+    auto nextFrame = last;
 
     while (!glfwWindowShouldClose(m_window)) {
         auto now = clock::now();
@@ -88,6 +93,9 @@ void Renderer::run(const int w, const int h, const std::string& t) {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(m_window);
+
+        nextFrame += std::chrono::duration<double>(frameTime);
+        std::this_thread::sleep_until(nextFrame);
     }
 
     onShutdown();

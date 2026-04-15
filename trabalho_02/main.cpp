@@ -198,9 +198,12 @@ protected:
                 if (m_q3.operation < 2)
                     drawVector(draw, center, m_q3.resultVec, scale, IM_COL32(255, 220, 0, 255));
                 else
-                    draw->AddCircle(center,
+                    draw->AddCircle(
+                        center,
                         std::fabs(m_q3.resultScalar) * scale * 0.1f,
-                        IM_COL32(255, 220, 0, 255), 32, 2.0f);
+                        m_q3.resultScalar >= 0 ? IM_COL32(0, 220, 0, 255) : IM_COL32(220, 0, 0, 255), 
+                        32, 2.0f
+                    );
                 break;
         }
 

@@ -122,29 +122,36 @@ protected:
     // -----------------------------------
     // Painéis por questão
     // -----------------------------------
+
     void drawQ1Panel() {
         ImGui::Text("Questão 1");
-        ImGui::SliderFloat2("Vetor A", &m_q1.vecA[0], -1.0f, 1.0f);
-        ImGui::SliderFloat2("Vetor B", &m_q1.vecB[0], -1.0f, 1.0f);
+        ImGui::DragFloat2("Vetor A", &m_q1.vecA[0], 0.01f, -1.0f, 1.0f);
+        ImGui::DragFloat2("Vetor B", &m_q1.vecB[0], 0.01f, -1.0f, 1.0f);
     }
 
     void drawQ2Panel() {
         ImGui::Text("Questão 2");
-        ImGui::SliderFloat2("Vetor", &m_q2.vec[0], -1.0f, 1.0f);
+        ImGui::DragFloat2("Vetor", &m_q2.vec[0], 0.01f, -1.0f, 1.0f);
     }
 
     void drawQ3Panel() {
         ImGui::Text("Questão 3");
 
-        ImGui::Combo("Operação", &m_q3.operation, m_q3.Q3_OPS, IM_ARRAYSIZE(m_q3.Q3_OPS));
-        ImGui::SliderFloat2("Vetor A", &m_q3.vecA[0], -1.0f, 1.0f);
-        ImGui::SliderFloat2("Vetor B", &m_q3.vecB[0], -1.0f, 1.0f);
+        ImGui::Combo(
+            "Operação",
+            &m_q3.operation,
+            m_q3.Q3_OPS,
+            IM_ARRAYSIZE(m_q3.Q3_OPS)
+        );
+
+        ImGui::DragFloat2("Vetor A", &m_q3.vecA[0], 0.01f, -1.0f, 1.0f);
+        ImGui::DragFloat2("Vetor B", &m_q3.vecB[0], 0.01f, -1.0f, 1.0f);
 
         if (ImGui::Button("Gerar aleatório")) {
             static std::mt19937 gen{std::random_device{}()};
             static std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
-            m_q3.vecA = {dis(gen), dis(gen)};
-            m_q3.vecB = {dis(gen), dis(gen)};
+            m_q3.vecA = { dis(gen), dis(gen) };
+            m_q3.vecB = { dis(gen), dis(gen) };
         }
 
         switch (m_q3.operation) {

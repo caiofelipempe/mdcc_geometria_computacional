@@ -1,7 +1,7 @@
-add_library(common_math INTERFACE
+add_library(math INTERFACE
     vecn.hpp
 )
 
-target_include_directories(common_math INTERFACE
+target_include_directories(math INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )

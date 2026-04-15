@@ -1,7 +1,7 @@
-add_library(common_error INTERFACE
+add_library(error INTERFACE
     error.hpp
 )
 
-target_include_directories(common_error INTERFACE
+target_include_directories(error INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )

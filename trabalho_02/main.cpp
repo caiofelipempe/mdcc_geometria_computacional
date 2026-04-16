@@ -51,7 +51,21 @@ struct Q3State {
     float prodr = 0.0f;
 };
 
-struct Q4State {};
+struct Q4State {
+    auto modelPoints = std::array<Vec2, 10>({
+        Vec2({.25, 1.}), 
+        Vec2({.5, 1.0}), 
+        Vec2({.75, 1.0}), 
+        Vec2({1.0, 0.5}), 
+        Vec2({.55, .47}), 
+        Vec2({.57, .0}), 
+        Vec2({0.5, 0}), 
+        Vec2({0.25, .0}), 
+        Vec2({0, 0.5}), 
+        Vec2({})
+    });
+};
+
 struct Q5State {};
 struct Q6State {};
 
@@ -220,20 +234,20 @@ private:
 
     void renderQ1() {
         drawAxes();
-        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight);
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
         drawVectorLine(m_q1.vec0*maxLength, 0, 1, 0);
         drawVectorLine(m_q1.vec1*maxLength, 0, 0, 1);
     }
 
     void renderQ2() {
         drawAxes();
-        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight);
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
         drawVectorLine(m_q2.vec*maxLength, 0, 1, 0);
     }
 
     void renderQ3() {
         drawAxes();
-        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight)/2;
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight)/2;
         drawVectorLine(m_q3.vec0*maxLength, 0, 1, 0);
         drawVectorLine(m_q3.vec1*maxLength, 0, 0, 1);
 
@@ -241,6 +255,13 @@ private:
             drawVectorLine(m_q3.vecr*maxLength, 1, 1, 0);
         else
             drawCircle(m_q3.prodr*maxLength);
+    }
+
+    void renderQ4() {
+        for(int i = 0; i < m_q4.modelPoints.length(); i++) {
+            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.75;
+            drawPoint(Vec2({m_q4.modelPoints[i][0]*maxLength, m_q4.modelPoints[i][1]*maxLength}), 5, .3, 1., .3);
+        }
     }
 
     // ──────────────── UI ────────────────

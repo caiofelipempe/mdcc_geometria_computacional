@@ -178,6 +178,15 @@ private:
         return m_canvasHeight <= 0 || m_canvasWidth < = 0;
     }
 
+    void drawPoint(const Vec2& p, float size, float r, float g, float b) {
+        glPointSize(size);
+        glColor3f(r, g, b);
+
+        glBegin(GL_POINTS);
+            glVertex2f(p.x/m_canvasWidth, p.y/m_canvasHeight);
+        glEnd();
+    }
+
     void drawAxes() {
         if (isCanvasInvalid()) return;
 
@@ -200,7 +209,7 @@ private:
 
     void drawCircle(float r) {
         if (isCanvasInvalid()) return;
-        
+
         glBegin(GL_LINE_LOOP);
         for (int i = 0; i < 40; ++i) {
             float t = 2.0f * PI * i / 40.0f;

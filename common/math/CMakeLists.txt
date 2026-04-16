@@ -1,5 +1,5 @@
 add_library(math INTERFACE
-    vecn.hpp
+    vec.hpp
 )
 
 target_include_directories(math INTERFACE

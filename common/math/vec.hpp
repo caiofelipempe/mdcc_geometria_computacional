@@ -134,7 +134,78 @@ normalized(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     if (ls <= eps * eps)
         return std::unexpected(Error::make("Vector is zero"));
 
-    return v / length(v);
+    return v / std::sqrt(ls);
+}
+
+template <Arithmetic T, std::size_t N>
+std::optional<Error>
+normalize(Vec<T, N>& v, T eps = default_epsilon<T>()) {
+    T ls = length_squared(v);
+    if (ls <= eps * eps)
+        return Error::make("Vector is zero");
+
+    v /= std::sqrt(ls);
+    return std::nullopt;
+}
+
+template <Arithmetic T, std::size_t N>
+std::expected<Vec<T, N>, Error>
+normalizedIfGreaterThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
+    T ls = length_squared(v);
+
+    // vetor zero continua inválido
+    if (ls <= eps * eps)
+        return std::unexpected(Error::make("Vector is zero"));
+
+    // |v| > 1 ?
+    if (ls > T(1))
+        return v / std::sqrt(ls);
+
+    return v;
+}
+
+template <Arithmetic T, std::size_t N>
+std::optional<Error>
+normalizeIfGreaterThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
+    T ls = length_squared(v);
+
+    if (ls <= eps * eps)
+        return Error::make("Vector is zero");
+
+    if (ls > T(1))
+        v /= std::sqrt(ls);
+
+    return std::nullopt;
+}
+
+template <Arithmetic T, std::size_t N>
+std::expected<Vec<T, N>, Error>
+normalizedIfSmallerThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
+    T ls = length_squared(v);
+
+    // vetor zero ainda é inválido
+    if (ls <= eps * eps)
+        return std::unexpected(Error::make("Vector is zero"));
+
+    // |v| < 1 ?
+    if (ls < T(1))
+        return v / std::sqrt(ls);
+
+    return v;
+}
+
+template <Arithmetic T, std::size_t N>
+std::optional<Error>
+normalizeIfSmallerThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
+    T ls = length_squared(v);
+
+    if (ls <= eps * eps)
+        return Error::make("Vector is zero");
+
+    if (ls < T(1))
+        v /= std::sqrt(ls);
+
+    return std::nullopt;
 }
 
 // ------------------------------------------------------------

@@ -66,8 +66,8 @@ private:
     int m_width  = 800;
     int m_height = 600;
 
-    Questao m_questao           = Questao::Q1;
-    int     m_questaoComboIndex = 0;
+    Questao m_questao = Questao::Q1;
+    int m_questaoComboIndex = 0;
 
     static inline constexpr const char* QUESTAO_ITEMS[] = {
         "Questão 1", "Questão 2", "Questão 3",
@@ -85,7 +85,7 @@ private:
     Q5State m_q5;
     Q6State m_q6;
 
-    std::mt19937                           m_rng{ std::random_device{}() };
+    std::mt19937 m_rng{ std::random_device{}() };
     std::uniform_real_distribution<float> m_dist{ -1.0f, 1.0f };
 
 protected:
@@ -103,10 +103,10 @@ protected:
         switch (m_questao) {
         case Questao::Q1: renderQ1(); break;
         case Questao::Q2: renderQ2(); break;
-        case Questao::Q3:
-            updateQ3();
-            renderQ3();
-            break;
+        case Questao::Q3: {
+                updateQ3();
+                renderQ3();
+            } break;
         default: break;
         }
     }
@@ -137,9 +137,9 @@ protected:
         case Questao::Q1: uiQ1(); break;
         case Questao::Q2: uiQ2(); break;
         case Questao::Q3: uiQ3(); break;
-        default:
+        default:{
             ImGui::TextDisabled("(não implementado)");
-            break;
+        } break;
         }
 
         ImGui::End();

@@ -65,6 +65,8 @@ public:
 private:
     int m_width  = 800;
     int m_height = 600;
+    int m_canvasWidth;
+    int m_canvasHeight;
 
     Questao m_questao = Questao::Q1;
     int m_questaoComboIndex = 0;
@@ -96,7 +98,13 @@ protected:
     void onWindowResize(int w, int h) override {
         m_width = w;
         m_height = h;
-        glViewport(PANEL_WIDTH, 0, w - PANEL_WIDTH, h);
+        onResize();
+    }
+
+    void onResize() {
+        m_canvasWidth = m_width - PANEL_WIDTH;
+        m_canvasHeight = m_height;
+        glViewport(PANEL_WIDTH, 0, m_canvasWidth, m_canvasHeight);
     }
 
     void onUpdate(float) override {
@@ -178,7 +186,7 @@ private:
         glColor3f(r, g, b);
         glBegin(GL_LINES);
         glVertex2f(0, 0);
-        glVertex2f(v[0]/m_width, v[1]/m_height);
+        glVertex2f(v[0]/m_canvasWidth, v[1]/m_canvasHeight);
         glEnd();
     }
 
@@ -193,20 +201,20 @@ private:
 
     void renderQ1() {
         drawAxes();
-        auto maxLength = *std::min(m_width, m_height);
+        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight);
         drawVectorLine(m_q1.vec0*maxLength, 0, 1, 0);
         drawVectorLine(m_q1.vec1*maxLength, 0, 0, 1);
     }
 
     void renderQ2() {
         drawAxes();
-        auto maxLength = *std::min(m_width, m_height);
+        auto maxLength = *std::min(m_canvasWidth, m_canvasHeightt);
         drawVectorLine(m_q2.vec*maxLength, 0, 1, 0);
     }
 
     void renderQ3() {
         drawAxes();
-        auto maxLength = *std::min(m_width, m_height)/2;
+        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight)/2;
         drawVectorLine(m_q3.vec0*maxLength, 0, 1, 0);
         drawVectorLine(m_q3.vec1*maxLength, 0, 0, 1);
 

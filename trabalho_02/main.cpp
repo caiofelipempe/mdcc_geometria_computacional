@@ -178,7 +178,7 @@ private:
         glColor3f(r, g, b);
         glBegin(GL_LINES);
         glVertex2f(0, 0);
-        glVertex2f(v[0], v[1]);
+        glVertex2f(v[0]/m_width, v[1]/m_height);
         glEnd();
     }
 
@@ -186,31 +186,34 @@ private:
         glBegin(GL_LINE_LOOP);
         for (int i = 0; i < 40; ++i) {
             float t = 2.0f * PI * i / 40.0f;
-            glVertex2f(std::cos(t) * r, std::sin(t) * r);
+            glVertex2f(std::cos(t) * r/m_width, std::sin(t) * r/m_height);
         }
         glEnd();
     }
 
     void renderQ1() {
         drawAxes();
-        drawVectorLine(m_q1.vec0, 0, 1, 0);
-        drawVectorLine(m_q1.vec1, 0, 0, 1);
+        auto maxLength = *std::min(m_width, m_height);
+        drawVectorLine(m_q1.vec0*maxLength, 0, 1, 0);
+        drawVectorLine(m_q1.vec1*maxLength, 0, 0, 1);
     }
 
     void renderQ2() {
         drawAxes();
-        drawVectorLine(m_q2.vec, 0, 1, 0);
+        auto maxLength = *std::min(m_width, m_height);
+        drawVectorLine(m_q2.vec*maxLength, 0, 1, 0);
     }
 
     void renderQ3() {
         drawAxes();
-        drawVectorLine(m_q3.vec0 * 0.5f, 0, 1, 0);
-        drawVectorLine(m_q3.vec1 * 0.5f, 0, 0, 1);
+        auto maxLength = *std::min(m_width, m_height)/2;
+        drawVectorLine(m_q3.vec0*maxLength, 0, 1, 0);
+        drawVectorLine(m_q3.vec1*maxLength, 0, 0, 1);
 
         if (m_q3.selectedOp <= Q3State::SUBTRACAO)
-            drawVectorLine(m_q3.vecr * 0.5f, 1, 1, 0);
+            drawVectorLine(m_q3.vecr*maxLength, 1, 1, 0);
         else
-            drawCircle(m_q3.prodr * 0.5f);
+            drawCircle(m_q3.prodr*maxLength);
     }
 
     // ──────────────── UI ────────────────

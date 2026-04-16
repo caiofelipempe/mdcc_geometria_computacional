@@ -131,6 +131,7 @@ protected:
                 updateQ3();
                 renderQ3();
             } break;
+        case Questao::Q4: renderQ4(); break;
         default: break;
         }
     }
@@ -224,12 +225,13 @@ private:
     }
 
     void drawCircle(float r) {
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
         if (isCanvasInvalid()) return;
 
         glBegin(GL_LINE_LOOP);
         for (int i = 0; i < 40; ++i) {
             float t = 2.0f * PI * i / 40.0f;
-            glVertex2f(std::cos(t) * r/m_width, std::sin(t) * r/m_height);
+            glVertex2f(std::cos(t) * r/maxLength, std::sin(t) * r/maxLength);
         }
         glEnd();
     }
@@ -261,7 +263,7 @@ private:
 
     void renderQ4() {
         for(int i = 0; i < m_q4.modelPoints.size(); i++) {
-            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.75;
+            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.5;
             drawPoint(Vec2({m_q4.modelPoints[i][0]*(float)maxLength, m_q4.modelPoints[i][1]*(float)maxLength}), 5, .3, 1., .3);
         }
     }

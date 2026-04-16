@@ -174,7 +174,13 @@ private:
     }
 
     // ──────────────── Render ────────────────
+    bool isCanvasInvalid() {
+        return m_canvasHeight <= 0 || m_canvasWidth < = 0;
+    }
+
     void drawAxes() {
+        if (isCanvasInvalid()) return;
+
         glColor3f(1, 1, 1);
         glBegin(GL_LINES);
         glVertex2f(-1, 0); glVertex2f(1, 0);
@@ -183,6 +189,8 @@ private:
     }
 
     void drawVectorLine(const Vec2& v, float r, float g, float b) {
+        if (isCanvasInvalid()) return;
+
         glColor3f(r, g, b);
         glBegin(GL_LINES);
         glVertex2f(0, 0);
@@ -191,6 +199,8 @@ private:
     }
 
     void drawCircle(float r) {
+        if (isCanvasInvalid()) return;
+        
         glBegin(GL_LINE_LOOP);
         for (int i = 0; i < 40; ++i) {
             float t = 2.0f * PI * i / 40.0f;
@@ -208,7 +218,7 @@ private:
 
     void renderQ2() {
         drawAxes();
-        auto maxLength = *std::min(m_canvasWidth, m_canvasHeightt);
+        auto maxLength = *std::min(m_canvasWidth, m_canvasHeight);
         drawVectorLine(m_q2.vec*maxLength, 0, 1, 0);
     }
 

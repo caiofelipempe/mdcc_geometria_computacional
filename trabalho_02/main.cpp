@@ -224,109 +224,112 @@ private:
     // ─────────────────────────────────────────
     //  UI ImGui por questão
     // ─────────────────────────────────────────
-    void uiQ1() {
-        const auto pa0   = m_q1.vec0.pseudoangle();
-        const auto pa1   = m_q1.vec1.pseudoangle();
-        const auto paDiff = geometry::pseudoangleBetween(m_q1.vec0, m_q1.vec1);
+void uiQ1() {
+    const auto pa0 = m_q1.vec0.pseudoangle();
+    const auto pa1 = m_q1.vec1.pseudoangle();
+    const auto paDiff = geometry::pseudoangleBetween(m_q1.vec0, m_q1.vec1);
 
-        ImGui::Text("Vetor 1:");
-        ImGui::SliderFloat2("##q1_v0", &m_q1.vec0[0], -1.0f, 1.0f);
-        warnIfZero(m_q1.vec0);
-        if (pa0.has_value())
-            ImGui::Text("Pseudoângulo: %.4f", pa0.value());
+    ImGui::Text("Vetor 1:");
+    ImGui::DragFloat2("##q1_v0", &m_q1.vec0[0], 0.01f, -1.0f, 1.0f);
+    warnIfZero(m_q1.vec0);
+    if (pa0.has_value())
+        ImGui::Text("Pseudoângulo: %.4f", pa0.value());
+    else
+        ImGui::TextDisabled("Pseudoângulo: N/A");
+
+    ImGui::Separator();
+    ImGui::Text("Vetor 2:");
+    ImGui::DragFloat2("##q1_v1", &m_q1.vec1[0], 0.01f, -1.0f, 1.0f);
+    warnIfZero(m_q1.vec1);
+    if (pa1.has_value())
+        ImGui::Text("Pseudoângulo: %.4f", pa1.value());
+    else
+        ImGui::TextDisabled("Pseudoângulo: N/A");
+
+    ImGui::Separator();
+    if (paDiff.has_value()) {
+        const float diff = paDiff.value() >= 0.0f ? paDiff.value()
+                                                  : 8.0f + paDiff.value();
+        ImGui::Text("Δ pseudoângulo: %.4f", diff);
+        if (m_q1.vec0.pseudoangle_less(m_q1.vec1))
+            ImGui::Text("Vetor 1 está à direita de 2");
+        else if (m_q1.vec1.pseudoangle_less(m_q1.vec0))
+            ImGui::Text("Vetor 1 está à esquerda de 2");
         else
-            ImGui::TextDisabled("Pseudoângulo: N/A");
+            ImGui::Text("Ângulos iguais");
+    }
+}
 
-        ImGui::Separator();
-        ImGui::Text("Vetor 2:");
-        ImGui::SliderFloat2("##q1_v1", &m_q1.vec1[0], -1.0f, 1.0f);
-        warnIfZero(m_q1.vec1);
-        if (pa1.has_value())
-            ImGui::Text("Pseudoângulo: %.4f", pa1.value());
-        else
-            ImGui::TextDisabled("Pseudoângulo: N/A");
+void uiQ2() {
+    ImGui::Text("Vetor:");
+    ImGui::DragFloat2("##q2_v", &m_q2.vec[0], 0.01f, -1.0f, 1.0f);
+    warnIfZero(m_q2.vec);
 
-        ImGui::Separator();
-        if (paDiff.has_value()) {
-            const float diff = paDiff.value() >= 0.0f ? paDiff.value() : 8.0f + paDiff.value();
-            ImGui::Text("Δ pseudoângulo: %.4f", diff);
-            if (m_q1.vec0.pseudoangle_less(m_q1.vec1))
-                ImGui::Text("Vetor 1 está à direita de 2");
-            else if (m_q1.vec1.pseudoangle_less(m_q1.vec0))
-                ImGui::Text("Vetor 1 está à esquerda de 2");
-            else
-                ImGui::Text("Ângulos iguais");
-        }
+    ImGui::Separator();
+    const auto pa    = m_q2.vec.pseudoangle();
+    const auto paAlt = m_q2.vec.pseudoangleAlt();
+    if (pa.has_value()) {
+        ImGui::Text("Pseudoângulo (octante): %.4f",  pa.value());
+        ImGui::Text("Pseudoângulo (quadrante): %.4f", paAlt.value());
+    } else {
+        ImGui::TextColored({1.0f, 0.4f, 0.4f, 1.0f}, "Vetor inválido");
     }
 
-    void uiQ2() {
-        ImGui::Text("Vetor:");
-        ImGui::SliderFloat2("##q2_v", &m_q2.vec[0], -1.0f, 1.0f);
-        warnIfZero(m_q2.vec);
-
-        ImGui::Separator();
-        const auto pa    = m_q2.vec.pseudoangle();
-        const auto paAlt = m_q2.vec.pseudoangleAlt();
-        if (pa.has_value()) {
-            ImGui::Text("Pseudoângulo (octante): %.4f",  pa.value());
-            ImGui::Text("Pseudoângulo (quadrante): %.4f", paAlt.value());
-        } else {
-            ImGui::TextColored({1.0f, 0.4f, 0.4f, 1.0f}, "Vetor inválido");
-        }
-
-        ImGui::Separator();
-        if (ImGui::CollapsingHeader("Explicação")) {
-            ImGui::TextWrapped(
-                "O algoritmo de octante divide o plano em 8 regiões usando "
-                "tangente/cotangente, mapeando o resultado em [0, 8). "
-                "O de quadrante é mais simples (x/(|x|+|y|) ou similar), "
-                "mapeando em [0, 4). Ambos produzem resultados consistentes "
-                "para a maioria dos vetores, mas o de octante é numericamente "
-                "mais estável próximo aos eixos."
-            );
-        }
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Explicação")) {
+        ImGui::TextWrapped(
+            "O algoritmo de octante divide o plano em 8 regiões usando "
+            "tangente/cotangente, mapeando o resultado em [0, 8). "
+            "O de quadrante é mais simples (x/(|x|+|y|) ou similar), "
+            "mapeando em [0, 4). Ambos produzem resultados consistentes "
+            "para a maioria dos vetores, mas o de octante é numericamente "
+            "mais estável próximo aos eixos."
+        );
     }
+}
 
-    void uiQ3() {
-        ImGui::Text("Operação:");
-        ImGui::Combo("##q3_op", &m_q3.selectedOp, Q3_OP_ITEMS, IM_ARRAYSIZE(Q3_OP_ITEMS));
-        ImGui::Separator();
+void uiQ3() {
+    ImGui::Text("Operação:");
+    ImGui::Combo("##q3_op", &m_q3.selectedOp,
+                 Q3_OP_ITEMS, IM_ARRAYSIZE(Q3_OP_ITEMS));
+    ImGui::Separator();
 
-        ImGui::Text("Vetor 1:");
-        ImGui::SliderFloat2("##q3_v0", &m_q3.vec0[0], -1.0f, 1.0f);
-        warnIfZero(m_q3.vec0);
+    ImGui::Text("Vetor 1:");
+    ImGui::DragFloat2("##q3_v0", &m_q3.vec0[0], 0.01f, -1.0f, 1.0f);
+    warnIfZero(m_q3.vec0);
 
-        ImGui::Separator();
-        ImGui::Text("Vetor 2:");
-        ImGui::SliderFloat2("##q3_v1", &m_q3.vec1[0], -1.0f, 1.0f);
-        warnIfZero(m_q3.vec1);
+    ImGui::Separator();
+    ImGui::Text("Vetor 2:");
+    ImGui::DragFloat2("##q3_v1", &m_q3.vec1[0], 0.01f, -1.0f, 1.0f);
+    warnIfZero(m_q3.vec1);
 
-        ImGui::Spacing();
-        if (ImGui::Button("Gerar aleatório")) {
-            m_q3.vec0[0] = m_dist(m_rng);
-            m_q3.vec0[1] = m_dist(m_rng);
-            m_q3.vec1[0] = m_dist(m_rng);
-            m_q3.vec1[1] = m_dist(m_rng);
-        }
-        ImGui::Spacing();
-        ImGui::Separator();
-
-        switch (m_q3.selectedOp) {
-        case Q3State::SOMA:
-            ImGui::Text("Soma: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
-            break;
-        case Q3State::SUBTRACAO:
-            ImGui::Text("Subtração: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
-            break;
-        case Q3State::CROSS:
-            ImGui::Text("Produto vetorial: %.4f", m_q3.prodr);
-            break;
-        case Q3State::DOT:
-            ImGui::Text("Produto escalar: %.4f", m_q3.prodr);
-            break;
-        default: break;
-        }
+    ImGui::Spacing();
+    if (ImGui::Button("Gerar aleatório")) {
+        m_q3.vec0[0] = m_dist(m_rng);
+        m_q3.vec0[1] = m_dist(m_rng);
+        m_q3.vec1[0] = m_dist(m_rng);
+        m_q3.vec1[1] = m_dist(m_rng);
     }
+    ImGui::Spacing();
+    ImGui::Separator();
+
+    switch (m_q3.selectedOp) {
+    case Q3State::SOMA:
+        ImGui::Text("Soma: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
+        break;
+    case Q3State::SUBTRACAO:
+        ImGui::Text("Subtração: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
+        break;
+    case Q3State::CROSS:
+        ImGui::Text("Produto vetorial: %.4f", m_q3.prodr);
+        break;
+    case Q3State::DOT:
+        ImGui::Text("Produto escalar: %.4f", m_q3.prodr);
+        break;
+    default:
+        break;
+    }
+}
 
     void uiQ4() { ImGui::TextDisabled("(não implementado)"); }
     void uiQ5() { ImGui::TextDisabled("(não implementado)"); }

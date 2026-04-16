@@ -7,6 +7,7 @@
 #include <expected>
 #include <stdexcept>
 #include <type_traits>
+#include <optional>
 
 namespace geometry {
 
@@ -80,6 +81,38 @@ constexpr Vec<T, N> operator/(const Vec<T, N>& v, T s) {
     return r;
 }
 
+// Compound-assignment operators (necessários para normalize in-place)
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator+=(Vec<T, N>& a, const Vec<T, N>& b) noexcept {
+    for (std::size_t i = 0; i < N; ++i)
+        a[i] += b[i];
+    return a;
+}
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator-=(Vec<T, N>& a, const Vec<T, N>& b) noexcept {
+    for (std::size_t i = 0; i < N; ++i)
+        a[i] -= b[i];
+    return a;
+}
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator*=(Vec<T, N>& v, T s) noexcept {
+    for (std::size_t i = 0; i < N; ++i)
+        v[i] *= s;
+    return v;
+}
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator/=(Vec<T, N>& v, T s) {
+    if constexpr (!std::is_floating_point_v<T>)
+        if (s == T{}) throw std::domain_error("Division by zero");
+    for (std::size_t i = 0; i < N; ++i)
+        v[i] /= s;
+    return v;
+}
+
 // ------------------------------------------------------------
 // Comparisons
 // ------------------------------------------------------------
@@ -127,84 +160,71 @@ T length(const Vec<T, N>& v) {
 // Normalization
 // ------------------------------------------------------------
 
+// Retorna cópia normalizada, ou erro se o vetor for zero.
 template <Arithmetic T, std::size_t N>
 std::expected<Vec<T, N>, Error>
 normalized(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return std::unexpected(Error::make("Vector is zero"));
-
     return v / std::sqrt(ls);
 }
 
+// Normaliza in-place. Retorna erro se o vetor for zero.
 template <Arithmetic T, std::size_t N>
 std::optional<Error>
 normalize(Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return Error::make("Vector is zero");
-
     v /= std::sqrt(ls);
     return std::nullopt;
 }
 
+// Normaliza apenas se |v| > 1; vetor zero continua sendo erro.
 template <Arithmetic T, std::size_t N>
 std::expected<Vec<T, N>, Error>
 normalizedIfGreaterThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
-
-    // vetor zero continua inválido
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return std::unexpected(Error::make("Vector is zero"));
-
-    // |v| > 1 ?
     if (ls > T(1))
         return v / std::sqrt(ls);
-
     return v;
 }
 
 template <Arithmetic T, std::size_t N>
 std::optional<Error>
 normalizeIfGreaterThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
-
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return Error::make("Vector is zero");
-
     if (ls > T(1))
         v /= std::sqrt(ls);
-
     return std::nullopt;
 }
 
+// Normaliza apenas se |v| < 1 (escala para unitário vetores curtos).
+// Vetor zero continua sendo erro.
 template <Arithmetic T, std::size_t N>
 std::expected<Vec<T, N>, Error>
 normalizedIfSmallerThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
-
-    // vetor zero ainda é inválido
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return std::unexpected(Error::make("Vector is zero"));
-
-    // |v| < 1 ?
     if (ls < T(1))
         return v / std::sqrt(ls);
-
     return v;
 }
 
 template <Arithmetic T, std::size_t N>
 std::optional<Error>
 normalizeIfSmallerThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
-    T ls = length_squared(v);
-
+    const T ls = length_squared(v);
     if (ls <= eps * eps)
         return Error::make("Vector is zero");
-
     if (ls < T(1))
         v /= std::sqrt(ls);
-
     return std::nullopt;
 }
 
@@ -253,6 +273,20 @@ constexpr Vec<T, 4> cross(
 
 // ------------------------------------------------------------
 // Pseudoangle (2D)
+//
+// Mapeamento CCW contínuo em [0, 8):
+//
+//         octante 1      octante 2
+//   (eixo +x, y=0) -> 0  (+x, +y) cresce de 0 até 2
+//         octante 3      octante 4
+//   (eixo +y, x=0) -> 2  (-x, +y) cresce de 2 até 4
+//         octante 5      octante 6
+//   (eixo -x, y=0) -> 4  (-x, -y) cresce de 4 até 6
+//         octante 7      octante 8
+//   (eixo -y, x=0) -> 6  (+x, -y) cresce de 6 até 8
+//
+// t = min(|x|,|y|) / max(|x|,|y|) ∈ [0,1], representa a fração
+// dentro de cada octante.
 // ------------------------------------------------------------
 
 template <Arithmetic T>
@@ -267,20 +301,37 @@ pseudoangle(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T ax = std::abs(x);
     const T ay = std::abs(y);
 
+    // ax >= ay: octantes 1, 8 (x > 0) ou 4, 5 (x < 0)
     if (ax >= ay) {
-        T t = ay / ax;
-        if (x >= 0)
-            return (y >= 0) ? t : T(8) - t;
+        const T t = ay / ax;           // t ∈ [0, 1]
+        if (x >= T{})
+            return (y >= T{}) ? t              // oct 1: [0, 1)
+                              : T(8) - t;      // oct 8: (7, 8]
         else
-            return (y >= 0) ? T(4) - t : T(4) + t;
-    } else {
-        T t = ax / ay;
-        if (y >= 0)
-            return (x >= 0) ? T(2) - t : T(2) + t;
+            return (y >= T{}) ? T(4) - t       // oct 4: (3, 4]
+                              : T(4) + t;      // oct 5: [4, 5)
+    }
+    // ay > ax: octantes 2, 3 (y > 0) ou 6, 7 (y < 0)
+    else {
+        const T t = ax / ay;           // t ∈ [0, 1)
+        if (y >= T{})
+            return (x >= T{}) ? T(2) - t       // oct 2: (1, 2]
+                              : T(2) + t;      // oct 3: [2, 3)
         else
-            return (x >= 0) ? T(6) + t : T(6) - t;
+            return (x >= T{}) ? T(6) + t       // oct 7: [6, 7)  (corrigido)
+                              : T(6) - t;      // oct 6: (5, 6]  (corrigido)
     }
 }
+
+// ------------------------------------------------------------
+// Pseudoangle alternativo (quadrantes, range [0, 4))
+//
+// Convenção CCW:
+//   Q1 (+x, +y): [0, 1)  — t = y/(|x|+|y|) cresce de 0 a 1
+//   Q2 (-x, +y): [1, 2)  — t = |x|/(|x|+|y|) cresce de 0 a 1
+//   Q3 (-x, -y): [2, 3)  — t = |y|/(|x|+|y|) cresce de 0 a 1
+//   Q4 (+x, -y): [3, 4)  — t = x/(|x|+|y|) cresce de 0 a 1
+// ------------------------------------------------------------
 
 template <Arithmetic T>
 std::expected<T, Error>
@@ -293,41 +344,47 @@ pseudoangleAlt(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
 
     const T ax = std::abs(x);
     const T ay = std::abs(y);
+    const T s  = ax + ay;        // sempre > 0
 
     if (x >= T{}) {
-        return (y >= T{})
-            ? y / (ax + ay)
-            : T(3) + x / (ax + ay);
+        if (y >= T{}) return y / s;              // Q1: [0, 1)
+        else          return T(3) + x / s;       // Q4: [3, 4)
     } else {
-        return (y >= T{})
-            ? T(1) + ax / (ax + ay)
-            : T(2) + ay / (ax + ay);
+        if (y >= T{}) return T(1) + ax / s;      // Q2: [1, 2)
+        else          return T(2) + ay / s;      // Q3: [2, 3)
     }
 }
 
+// ------------------------------------------------------------
+// Utilitários de comparação / diferença angular
+// ------------------------------------------------------------
+
+// Comparador CCW para usar em std::sort.
+// Vetores zero são enviados para o final (greater-than-all).
 template <Arithmetic T>
 bool pseudoangle_less(const Vec<T, 2>& a, const Vec<T, 2>& b) {
-    auto pa = pseudoangle(a);
-    auto pb = pseudoangle(b);
+    const auto pa = pseudoangle(a);
+    const auto pb = pseudoangle(b);
 
-    if (!pa.has_value()) return pb.has_value();
-    if (!pb.has_value()) return false;
+    if (!pa.has_value() && !pb.has_value()) return false; // ambos zero: iguais
+    if (!pa.has_value()) return false; // zero vai para o fim
+    if (!pb.has_value()) return true;  // b é zero, a vem antes
 
     return pa.value() < pb.value();
 }
 
+// Retorna o ângulo "signed" de a até b no pseudoespaço: pb - pa.
+// Não normaliza para [0, 8) — o chamador decide a semântica.
 template <Arithmetic T>
 std::expected<T, Error>
 pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
-    auto pa = pseudoangle(a);
-    auto pb = pseudoangle(b);
+    const auto pa = pseudoangle(a);
+    const auto pb = pseudoangle(b);
 
     if (!pa.has_value() || !pb.has_value())
-        return std::unexpected(
-            Error::make("One or both vectors are zero")
-        );
+        return std::unexpected(Error::make("One or both vectors are zero"));
 
     return pb.value() - pa.value();
 }
 
-}
+} // namespace geometry

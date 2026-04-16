@@ -1,6 +1,8 @@
 #include "renderer.hpp"
 #include "input.h"
-#include "geometry_array.hpp"
+#include "vec.hpp"
+
+using namespace geometry;
 
 #include <imgui.h>
 #include <GLFW/glfw3.h>
@@ -52,7 +54,7 @@ struct Q3State {
 };
 
 struct Q4State {
-    auto modelPoints = std::array<Vec2, 10>({
+    std::array<Vec2, 10> modelPoints = {
         Vec2({.25, 1.}), 
         Vec2({.5, 1.0}), 
         Vec2({.75, 1.0}), 
@@ -62,8 +64,8 @@ struct Q4State {
         Vec2({0.5, 0}), 
         Vec2({0.25, .0}), 
         Vec2({0, 0.5}), 
-        Vec2({})
-    });
+        Vec2({0.0, 0.0})  // Preencha o último elemento
+    };
 };
 
 struct Q5State {};
@@ -189,7 +191,7 @@ private:
 
     // ──────────────── Render ────────────────
     bool isCanvasInvalid() {
-        return m_canvasHeight <= 0 || m_canvasWidth < = 0;
+        return m_canvasHeight <= 0 || m_canvasWidth <= 0;
     }
 
     void drawPoint(const Vec2& p, float size, float r, float g, float b) {
@@ -197,7 +199,7 @@ private:
         glColor3f(r, g, b);
 
         glBegin(GL_POINTS);
-            glVertex2f(p.x/m_canvasWidth, p.y/m_canvasHeight);
+            glVertex2f(p[0]/m_canvasWidth, p[1]/m_canvasHeight);
         glEnd();
     }
 
@@ -235,32 +237,32 @@ private:
     void renderQ1() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
-        drawVectorLine(m_q1.vec0*maxLength, 0, 1, 0);
-        drawVectorLine(m_q1.vec1*maxLength, 0, 0, 1);
+        drawVectorLine(m_q1.vec0*(float)maxLength, 0, 1, 0);
+        drawVectorLine(m_q1.vec1*(float)maxLength, 0, 0, 1);
     }
 
     void renderQ2() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
-        drawVectorLine(m_q2.vec*maxLength, 0, 1, 0);
+        drawVectorLine(m_q2.vec*(float)maxLength, 0, 1, 0);
     }
 
     void renderQ3() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight)/2;
-        drawVectorLine(m_q3.vec0*maxLength, 0, 1, 0);
-        drawVectorLine(m_q3.vec1*maxLength, 0, 0, 1);
+        drawVectorLine(m_q3.vec0*(float)maxLength, 0, 1, 0);
+        drawVectorLine(m_q3.vec1*(float)maxLength, 0, 0, 1);
 
         if (m_q3.selectedOp <= Q3State::SUBTRACAO)
-            drawVectorLine(m_q3.vecr*maxLength, 1, 1, 0);
+            drawVectorLine(m_q3.vecr*(float)maxLength, 1, 1, 0);
         else
-            drawCircle(m_q3.prodr*maxLength);
+            drawCircle(m_q3.prodr*(float)maxLength);
     }
 
     void renderQ4() {
-        for(int i = 0; i < m_q4.modelPoints.length(); i++) {
+        for(int i = 0; i < m_q4.modelPoints.size(); i++) {
             auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.75;
-            drawPoint(Vec2({m_q4.modelPoints[i][0]*maxLength, m_q4.modelPoints[i][1]*maxLength}), 5, .3, 1., .3);
+            drawPoint(Vec2({m_q4.modelPoints[i][0]*(float)maxLength, m_q4.modelPoints[i][1]*(float)maxLength}), 5, .3, 1., .3);
         }
     }
 

@@ -24,6 +24,13 @@ namespace geometry {
 #include <cstddef>
 #include <type_traits>
 
+
+enum class Orientation {
+    Colinear,
+    Clockwise,
+    CounterClockwise
+};
+
 // Vetor e ponto
 template <typename T, std::size_t N>
 using Vec = std::array<T, N>;
@@ -439,6 +446,97 @@ pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
         return std::unexpected(Error::make("One or both vectors are zero"));
 
     return pb.value() - pa.value();
+}
+
+template <typename T>
+T orientedArea2(const Segment<T>& s, const Point<T, 2>& o) {
+    const auto& a = s[0];
+    const auto& b = s[1];
+
+    Point<T, 2> ab{ b[0] - a[0], b[1] - a[1] };
+    Point<T, 2> ap{ o[0] - a[0], o[1] - a[1] };
+
+    return cross(ab, ap);
+}
+
+template <typename T>
+Orientation orientation(const Point2<T>& a, const Point2<T>& b, const Point2<T>& c) {
+    T val = orientedArea2(a, b, c);
+
+    if (val == T(0)) return Orientation::Colinear;
+    return (val > 0)
+        ? Orientation::CounterClockwise
+        : Orientation::Clockwise;
+}
+
+
+template <typename T>
+bool isZero(T v, T eps) {
+    return std::abs(v) <= eps;
+}
+
+template <typename T>
+bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon()) {
+    const auto& a = s[0];
+    const auto& b = s[1];
+
+    return
+        p[0] >= std::min(a[0], b[0]) - eps &&
+        p[0] <= std::max(a[0], b[0]) + eps &&
+        p[1] >= std::min(a[1], b[1]) - eps &&
+        p[1] <= std::max(a[1], b[1]) + eps;
+}
+
+
+template <typename T>
+bool segmentsIntersect(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
+    T o1 = orientedArea2(s1, s2[0]);
+    T o2 = orientedArea2(s1, s2[1]);
+    T o3 = orientedArea2(s2, s1[0]);
+    T o4 = orientedArea2(s2, s1[1]);
+
+    // Interseção própria
+    if ((o1 > eps && o2 < -eps || o1 < -eps && o2 > eps) &&
+        (o3 > eps && o4 < -eps || o3 < -eps && o4 > eps))
+        return true;
+
+    // Casos colineares
+    if (isZero(o1, eps) && onSegment(s1, s2[0], eps)) return true;
+    if (isZero(o2, eps) && onSegment(s1, s2[1], eps)) return true;
+    if (isZero(o3, eps) && onSegment(s2, s1[0], eps)) return true;
+    if (isZero(o4, eps) && onSegment(s2, s1[1], eps)) return true;
+
+    return false;
+}
+
+template <typename T>
+std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
+    const auto& p = s1[0];
+    const auto& p2 = s1[1];
+    const auto& q = s2[0];
+    const auto& q2 = s2[1];
+
+    Point2<T> r{ p2[0] - p[0], p2[1] - p[1] };
+    Point2<T> s{ q2[0] - q[0], q2[1] - q[1] };
+
+    T rxs = cross(r, s);
+    T q_pxs = cross(
+        Point2<T>{ q[0] - p[0], q[1] - p[1] },
+        s
+    );
+
+    if (std::abs(rxs) <= eps)
+        return std::nullopt;
+
+    T t = q_pxs / rxs;
+
+    if (t < -eps || t > T(1) + eps)
+        return std::nullopt;
+
+    return Point2<T>{
+        p[0] + t * r[0],
+        p[1] + t * r[1]
+    };
 }
 
 } // namespace geometry

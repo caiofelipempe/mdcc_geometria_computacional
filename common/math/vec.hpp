@@ -487,9 +487,8 @@ bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon(
         p[1] <= std::max(a[1], b[1]) + eps;
 }
 
-
 template <typename T>
-bool segmentsIntersect(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
+bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
     T o1 = orientedArea2(s1, s2[0]);
     T o2 = orientedArea2(s1, s2[1]);
     T o3 = orientedArea2(s2, s1[0]);
@@ -539,18 +538,20 @@ std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Se
     };
 }
 
+
 template <typename T>
-std::size_t segmentPolygonIntersections(const Segment<T>& segment, const Polygon<T>& polygon, T eps = default_epsilon()) {
+std::size_t
+segmentPolygonIntersectionCount(
+    const Segment<T>& segment,
+    const Polygon<T>& polygon,
+    T eps
+) {
     std::size_t count = 0;
-    std::size_t n = polygon.size();
 
-    if (n < 2)
-        return 0;
-
-    for (std::size_t i = 0; i < n; ++i) {
+    for (std::size_t i = 0; i < polygon.size(); ++i) {
         Segment<T> edge{
             polygon[i],
-            polygon[(i + 1) % n] // fecha o polígono
+            polygon[(i + 1) % polygon.size()]
         };
 
         if (segmentsIntersect(segment, edge, eps))
@@ -560,97 +561,74 @@ std::size_t segmentPolygonIntersections(const Segment<T>& segment, const Polygon
     return count;
 }
 
-enum class IntersectionReturn {
-    Count,
-    Points,
-    FirstPoint,
-    Exists
-};
+template <typename T>
+bool
+segmentPolygonIntersectionExists(
+    const Segment<T>& segment,
+    const Polygon<T>& polygon,
+    T eps
+) {
+    for (std::size_t i = 0; i < polygon.size(); ++i) {
+        Segment<T> edge{
+            polygon[i],
+            polygon[(i + 1) % polygon.size()]
+        };
 
-template <IntersectionReturn R, typename T>
-using IntersectionResult =
-    std::conditional_t<
-        R == IntersectionReturn::Count,
-        std::size_t,
-    std::conditional_t<
-        R == IntersectionReturn::Exists,
-        bool,
-    std::conditional_t<
-        R == IntersectionReturn::FirstPoint,
-        std::optional<Point2<T>>,
-        std::vector<Point2<T>>
-    >>>;
-       
-template <IntersectionReturn R, typename T>
-IntersectionResult<R, T>
-segmentPolygonIntersections(const Segment<T>& segment, const Polygon<T>& polygon, T eps = T(1e-9)) {
-    const std::size_t n = polygon.size();
-
-    switch (R) {
-        case IntersectionReturn::Count: {
-            std::size_t count = 0;
-
-            for (std::size_t i = 0; i < n; ++i) {
-                Segment<T> edge{
-                    polygon[i],
-                    polygon[(i + 1) % n]
-                };
-
-                if (segmentsIntersect(segment, edge, eps))
-                    ++count;
-            }
-            return count;
-        }
-        case IntersectionReturn::Exists: {
-            for (std::size_t i = 0; i < n; ++i) {
-                Segment<T> edge{
-                    polygon[i],
-                    polygon[(i + 1) % n]
-                };
-
-                if (segmentsIntersect(segment, edge, eps))
-                    return true;
-            }
-            return false;
-        }
-        case IntersectionReturn::FirstPoint: {
-            for (std::size_t i = 0; i < n; ++i) {
-                Segment<T> edge{
-                    polygon[i],
-                    polygon[(i + 1) % n]
-                };
-
-                if (!segmentsIntersect(segment, edge, eps))
-                    continue;
-
-                auto p = segmentIntersectionPoint(segment, edge, eps);
-                if (p)
-                    return p;
-            }
-            return std::nullopt;
-        }
-        case IntersectionReturn::Points: {
-            std::vector<Point2<T>> points;
-
-            for (std::size_t i = 0; i < n; ++i) {
-                Segment<T> edge{
-                    polygon[i],
-                    polygon[(i + 1) % n]
-                };
-
-                if (!segmentsIntersect(segment, edge, eps))
-                    continue;
-
-                auto p = segmentIntersectionPoint(segment, edge, eps);
-                if (p)
-                    points.push_back(*p);
-            }
-            return points;
-        }
+        if (segmentsIntersect(segment, edge, eps))
+            return true;
     }
 
-    // Nunca alcançado (R é conhecido em compile‑time)
-    return {};
+    return false;
+}
+
+template <typename T>
+std::optional<Point2<T>>
+segmentPolygonIntersectionFirstPoint(
+    const Segment<T>& segment,
+    const Polygon<T>& polygon,
+    T eps
+) {
+    for (std::size_t i = 0; i < polygon.size(); ++i) {
+        Segment<T> edge{
+            polygon[i],
+            polygon[(i + 1) % polygon.size()]
+        };
+
+        if (!segmentsIntersect(segment, edge, eps))
+            continue;
+
+        auto p = segmentIntersectionPoint(segment, edge, eps);
+        if (p)
+            return p;
+    }
+
+    return std::nullopt;
+}
+
+template <typename T>
+std::vector<Point2<T>>
+segmentPolygonIntersectionPoints(
+    const Segment<T>& segment,
+    const Polygon<T>& polygon,
+    T eps
+) {
+    std::vector<Point2<T>> points;
+
+    for (std::size_t i = 0; i < polygon.size(); ++i) {
+        Segment<T> edge{
+            polygon[i],
+            polygon[(i + 1) % polygon.size()]
+        };
+
+        if (!segmentsIntersect(segment, edge, eps))
+            continue;
+
+        auto p = segmentIntersectionPoint(segment, edge, eps);
+        if (p)
+            points.push_back(*p);
+    }
+
+    return points;
 }
 
 } // namespace geometry

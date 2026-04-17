@@ -15,8 +15,62 @@ namespace geometry {
 // Base aliases & helpers
 // ------------------------------------------------------------
 
+#include <array>
+#include <vector>
+#include <cstddef>
+
+#include <array>
+#include <vector>
+#include <cstddef>
+#include <type_traits>
+
+// Vetor e ponto
 template <typename T, std::size_t N>
 using Vec = std::array<T, N>;
+
+template <typename T, std::size_t N>
+using Point = Vec<T, N>;
+
+// Símplex genérico
+template <typename T, std::size_t N>
+using Simplex = std::array<Point<T, N>, N + 1>;
+
+// Casos clássicos
+template <typename T>
+using Segment = Simplex<T, 1>;
+
+template <typename T>
+using Triangle = Simplex<T, 2>;
+
+template <typename T>
+using Tetraedro = Simplex<T, 3>;
+
+// Pontos específicos
+template <typename T>
+using Point2 = Vec<T, 2>;
+
+template <typename T>
+using Point3 = Vec<T, 3>;
+
+// Storage dinâmico (N == 0) ou estático (N > 0)
+template <typename T, std::size_t N>
+using Storage = std::conditional_t<
+    N == 0,
+    std::vector<T>,
+    std::array<T, N>
+>;
+
+// Polígono (lista de pontos em sequência)
+template <typename T, std::size_t N = 0>
+using Polygon = Storage<Point<T, 2>, N>;
+
+// Poliedro por boundary representation
+template <typename T, std::size_t VN = 0, std::size_t FN = 0>
+struct Polyhedron {
+    Storage<Point3<T>, VN> vertices;
+    Storage<std::array<std::size_t, 3>, FN> faces;
+};
+
 
 template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;

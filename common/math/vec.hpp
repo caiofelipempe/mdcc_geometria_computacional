@@ -3,27 +3,19 @@
 #include "error.hpp"
 
 #include <array>
+#include <vector>
+#include <cstddef>
+#include <type_traits>
 #include <cmath>
 #include <expected>
-#include <stdexcept>
-#include <type_traits>
 #include <optional>
+#include <stdexcept>
 
 namespace geometry {
 
 // ------------------------------------------------------------
 // Base aliases & helpers
 // ------------------------------------------------------------
-
-#include <array>
-#include <vector>
-#include <cstddef>
-
-#include <array>
-#include <vector>
-#include <cstddef>
-#include <type_traits>
-
 
 enum class Orientation {
     Colinear,
@@ -77,7 +69,6 @@ struct Polyhedron {
     VectorOrArray<Point3<T>, VN> vertices;
     VectorOrArray<std::array<std::size_t, 3>, FN> faces;
 };
-
 
 template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;
@@ -379,8 +370,8 @@ pseudoangle(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
             return (x >= T{}) ? T(2) - t       // oct 2: (1, 2]
                               : T(2) + t;      // oct 3: [2, 3)
         else
-            return (x >= T{}) ? T(6) + t       // oct 7: [6, 7)  (corrigido)
-                              : T(6) - t;      // oct 6: (5, 6]  (corrigido)
+            return (x >= T{}) ? T(6) + t       // oct 7: [6, 7)
+                              : T(6) - t;      // oct 6: (5, 6]
     }
 }
 
@@ -449,26 +440,26 @@ pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
 }
 
 template <typename T>
-T orientedArea2(const Segment<T>& s, const Point<T, 2>& o) {
-    const auto& a = s[0];
-    const auto& b = s[1];
-
+T orientedArea2(const Point<T, 2>& a, const Point<T, 2>& b, const Point<T, 2>& c) {
     Point<T, 2> ab{ b[0] - a[0], b[1] - a[1] };
-    Point<T, 2> ap{ o[0] - a[0], o[1] - a[1] };
-
-    return cross(ab, ap);
+    Point<T, 2> ac{ c[0] - a[0], c[1] - a[1] };
+    return cross(ab, ac);
 }
 
 template <typename T>
-Orientation orientation(const Point2<T>& a, const Point2<T>& b, const Point2<T>& c) {
+T orientedArea2(const Segment<T>& s, const Point<T, 2>& o) {
+    return orientedArea2(s[0], s[1], o);
+}
+
+template <typename T>
+Orientation orientation(const Point2<T>& a, const Point2<T>& b, const Point2<T>& c, T eps = default_epsilon<T>()) {
     T val = orientedArea2(a, b, c);
 
-    if (val == T(0)) return Orientation::Colinear;
+    if (std::abs(val) <= eps) return Orientation::Colinear;
     return (val > 0)
         ? Orientation::CounterClockwise
         : Orientation::Clockwise;
 }
-
 
 template <typename T>
 bool isZero(T v, T eps) {
@@ -476,7 +467,7 @@ bool isZero(T v, T eps) {
 }
 
 template <typename T>
-bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon()) {
+bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon<T>()) {
     const auto& a = s[0];
     const auto& b = s[1];
 
@@ -488,7 +479,7 @@ bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon(
 }
 
 template <typename T>
-bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
+bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon<T>()) {
     T o1 = orientedArea2(s1, s2[0]);
     T o2 = orientedArea2(s1, s2[1]);
     T o3 = orientedArea2(s2, s1[0]);
@@ -509,7 +500,7 @@ bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps
 }
 
 template <typename T>
-std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon()) {
+std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon<T>()) {
     const auto& p = s1[0];
     const auto& p2 = s1[1];
     const auto& q = s2[0];
@@ -538,13 +529,12 @@ std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Se
     };
 }
 
-
 template <typename T>
 std::size_t
 segmentPolygonIntersectionCount(
     const Segment<T>& segment,
     const Polygon<T>& polygon,
-    T eps
+    T eps = default_epsilon<T>()
 ) {
     std::size_t count = 0;
 
@@ -554,7 +544,7 @@ segmentPolygonIntersectionCount(
             polygon[(i + 1) % polygon.size()]
         };
 
-        if (segmentsIntersect(segment, edge, eps))
+        if (segmentIntersectionExists(segment, edge, eps))
             ++count;
     }
 
@@ -566,7 +556,7 @@ bool
 segmentPolygonIntersectionExists(
     const Segment<T>& segment,
     const Polygon<T>& polygon,
-    T eps
+    T eps = default_epsilon<T>()
 ) {
     for (std::size_t i = 0; i < polygon.size(); ++i) {
         Segment<T> edge{
@@ -574,7 +564,7 @@ segmentPolygonIntersectionExists(
             polygon[(i + 1) % polygon.size()]
         };
 
-        if (segmentsIntersect(segment, edge, eps))
+        if (segmentIntersectionExists(segment, edge, eps))
             return true;
     }
 
@@ -586,7 +576,7 @@ std::optional<Point2<T>>
 segmentPolygonIntersectionFirstPoint(
     const Segment<T>& segment,
     const Polygon<T>& polygon,
-    T eps
+    T eps = default_epsilon<T>()
 ) {
     for (std::size_t i = 0; i < polygon.size(); ++i) {
         Segment<T> edge{
@@ -594,7 +584,7 @@ segmentPolygonIntersectionFirstPoint(
             polygon[(i + 1) % polygon.size()]
         };
 
-        if (!segmentsIntersect(segment, edge, eps))
+        if (!segmentIntersectionExists(segment, edge, eps))
             continue;
 
         auto p = segmentIntersectionPoint(segment, edge, eps);
@@ -610,7 +600,7 @@ std::vector<Point2<T>>
 segmentPolygonIntersectionPoints(
     const Segment<T>& segment,
     const Polygon<T>& polygon,
-    T eps
+    T eps = default_epsilon<T>()
 ) {
     std::vector<Point2<T>> points;
 
@@ -620,7 +610,7 @@ segmentPolygonIntersectionPoints(
             polygon[(i + 1) % polygon.size()]
         };
 
-        if (!segmentsIntersect(segment, edge, eps))
+        if (!segmentIntersectionExists(segment, edge, eps))
             continue;
 
         auto p = segmentIntersectionPoint(segment, edge, eps);

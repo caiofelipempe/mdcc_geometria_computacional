@@ -11,9 +11,9 @@ using namespace geometry;
 #include <numbers>
 #include <random>
 
-using Vec2 = geometry::Point2<float>;
-using Segment = geometry::Segment<float>;
-using Polygon = geometry::Polygon<float>;
+using Point2f = geometry::Point2<float>;
+using Segmentf = geometry::Segment<float>;
+using Polygonf = geometry::Polygon<float>;
 
 // ─────────────────────────────────────────────
 //  Constantes globais
@@ -38,40 +38,40 @@ enum class Questao {
 //  Estado por questão
 // ─────────────────────────────────────────────
 struct Q1State {
-    Vec2 vec0{};
-    Vec2 vec1{};
+    Point2f vec0{};
+    Point2f vec1{};
 };
 
 struct Q2State {
-    Vec2 vec{};
+    Point2f vec{};
 };
 
 struct Q3State {
     enum Op { SOMA = 0, SUBTRACAO, CROSS, DOT, COUNT };
     int   selectedOp = SOMA;
-    Vec2  vec0{};
-    Vec2  vec1{};
-    Vec2  vecr{};
+    Point2f  vec0{};
+    Point2f  vec1{};
+    Point2f  vecr{};
     float prodr = 0.0f;
 };
 
-struct Q4State {
-    std::array<Vec2, 10> modelPoints = {
-        Vec2({.25, 1.}), 
-        Vec2({.5, 1.0}), 
-        Vec2({.75, 1.0}), 
-        Vec2({1.0, 0.5}), 
-        Vec2({.55, .47}), 
-        Vec2({.57, .0}), 
-        Vec2({0.5, 0}), 
-        Vec2({0.25, .0}), 
-        Vec2({0, 0.5}), 
-        Vec2({0.0, 0.0})  // Preencha o último elemento
-    };
-};
+struct Q4State {};
 
 struct Q5State {};
-struct Q6State {};
+struct Q6State {
+    Polygonf poligon = {
+        Point2f({-.5f, -.8f}), 
+        Point2f({.0f, -.8f}), 
+        Point2f({.5f, -.8f}), 
+        Point2f({1.0f, -0.25f}), 
+        Point2f({.55f, .05f}), 
+        Point2f({.1f, .1f}), 
+        Point2f({0.2f, .8f}), 
+        Point2f({-.5f, .8f}),
+        Point2f({-.4f, .13f}),
+        Point2f({-1.f, -.2f})
+    };
+};
 
 // ─────────────────────────────────────────────
 //  Aplicação principal
@@ -133,7 +133,7 @@ protected:
                 updateQ3();
                 renderQ3();
             } break;
-        case Questao::Q4: renderQ4(); break;
+        case Questao::Q6: renderQ6(); break;
         default: break;
         }
     }
@@ -197,7 +197,7 @@ private:
         return m_canvasHeight <= 0 || m_canvasWidth <= 0;
     }
 
-    void drawPoint(const Vec2& p, float size, float r, float g, float b) {
+    void drawPoint(const Point2f& p, float size, float r, float g, float b) {
         glPointSize(size);
         glColor3f(r, g, b);
 
@@ -216,7 +216,7 @@ private:
         glEnd();
     }
 
-    void drawVectorLine(const Vec2& v, float r, float g, float b) {
+    void drawVectorLine(const Point2f& v, float r, float g, float b) {
         if (isCanvasInvalid()) return;
 
         glColor3f(r, g, b);
@@ -263,10 +263,10 @@ private:
             drawCircle(m_q3.prodr*(float)maxLength);
     }
 
-    void renderQ4() {
-        for(int i = 0; i < m_q4.modelPoints.size(); i++) {
-            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.5;
-            drawPoint(Vec2({m_q4.modelPoints[i][0]*(float)maxLength, m_q4.modelPoints[i][1]*(float)maxLength}), 5, .3, 1., .3);
+    void renderQ6() {
+        for(int i = 0; i < m_q6.poligon.size(); i++) {
+            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
+            drawPoint(Point2f({m_q6.poligon[i][0]*(float)maxLength, m_q6.poligon[i][1]*(float)maxLength}), 5, .3, 1., .3);
         }
     }
 
@@ -321,7 +321,7 @@ private:
             ImGui::Text("Resultado: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
     }
 
-    static void warnIfZero(const Vec2& v) {
+    static void warnIfZero(const Point2f& v) {
         if (v[0] == 0.0f && v[1] == 0.0f)
             ImGui::TextColored({1, 0.4f, 0.4f, 1}, "⚠ Vetor nulo");
     }

@@ -168,7 +168,7 @@ constexpr Vec<T, N>& operator/=(Vec<T, N>& v, T s) {
 // ------------------------------------------------------------
 // Comparisons
 // ------------------------------------------------------------
-
+ 
 template <Arithmetic T, std::size_t N>
 constexpr bool operator==(const Vec<T, N>& a, const Vec<T, N>& b) noexcept {
     for (std::size_t i = 0; i < N; ++i)

@@ -11,7 +11,9 @@ using namespace geometry;
 #include <numbers>
 #include <random>
 
-using Vec2 = geometry::Vec<float, 2>;
+using Vec2 = geometry::Vec2<float>;
+using Segment = geometry::Segment<float>;
+using Poligon = geometry::Poligon<float>;
 
 // ─────────────────────────────────────────────
 //  Constantes globais

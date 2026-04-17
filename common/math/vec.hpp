@@ -59,9 +59,9 @@ using Point2 = Vec<T, 2>;
 template <typename T>
 using Point3 = Vec<T, 3>;
 
-// Storage dinâmico (N == 0) ou estático (N > 0)
+// VectorOrArray dinâmico (N == 0) ou estático (N > 0)
 template <typename T, std::size_t N>
-using Storage = std::conditional_t<
+using VectorOrArray = std::conditional_t<
     N == 0,
     std::vector<T>,
     std::array<T, N>
@@ -69,13 +69,13 @@ using Storage = std::conditional_t<
 
 // Polígono (lista de pontos em sequência)
 template <typename T, std::size_t N = 0>
-using Polygon = Storage<Point<T, 2>, N>;
+using Polygon = VectorOrArray<Point<T, 2>, N>;
 
 // Poliedro por boundary representation
 template <typename T, std::size_t VN = 0, std::size_t FN = 0>
 struct Polyhedron {
-    Storage<Point3<T>, VN> vertices;
-    Storage<std::array<std::size_t, 3>, FN> faces;
+    VectorOrArray<Point3<T>, VN> vertices;
+    VectorOrArray<std::array<std::size_t, 3>, FN> faces;
 };
 
 
@@ -537,6 +537,120 @@ std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Se
         p[0] + t * r[0],
         p[1] + t * r[1]
     };
+}
+
+template <typename T>
+std::size_t segmentPolygonIntersections(const Segment<T>& segment, const Polygon<T>& polygon, T eps = default_epsilon()) {
+    std::size_t count = 0;
+    std::size_t n = polygon.size();
+
+    if (n < 2)
+        return 0;
+
+    for (std::size_t i = 0; i < n; ++i) {
+        Segment<T> edge{
+            polygon[i],
+            polygon[(i + 1) % n] // fecha o polígono
+        };
+
+        if (segmentsIntersect(segment, edge, eps))
+            ++count;
+    }
+
+    return count;
+}
+
+enum class IntersectionReturn {
+    Count,
+    Points,
+    FirstPoint,
+    Exists
+};
+
+template <IntersectionReturn R, typename T>
+using IntersectionResult =
+    std::conditional_t<
+        R == IntersectionReturn::Count,
+        std::size_t,
+    std::conditional_t<
+        R == IntersectionReturn::Exists,
+        bool,
+    std::conditional_t<
+        R == IntersectionReturn::FirstPoint,
+        std::optional<Point2<T>>,
+        std::vector<Point2<T>>
+    >>>;
+       
+template <IntersectionReturn R, typename T>
+IntersectionResult<R, T>
+segmentPolygonIntersections(const Segment<T>& segment, const Polygon<T>& polygon, T eps = T(1e-9)) {
+    const std::size_t n = polygon.size();
+
+    switch (R) {
+        case IntersectionReturn::Count: {
+            std::size_t count = 0;
+
+            for (std::size_t i = 0; i < n; ++i) {
+                Segment<T> edge{
+                    polygon[i],
+                    polygon[(i + 1) % n]
+                };
+
+                if (segmentsIntersect(segment, edge, eps))
+                    ++count;
+            }
+            return count;
+        }
+        case IntersectionReturn::Exists: {
+            for (std::size_t i = 0; i < n; ++i) {
+                Segment<T> edge{
+                    polygon[i],
+                    polygon[(i + 1) % n]
+                };
+
+                if (segmentsIntersect(segment, edge, eps))
+                    return true;
+            }
+            return false;
+        }
+        case IntersectionReturn::FirstPoint: {
+            for (std::size_t i = 0; i < n; ++i) {
+                Segment<T> edge{
+                    polygon[i],
+                    polygon[(i + 1) % n]
+                };
+
+                if (!segmentsIntersect(segment, edge, eps))
+                    continue;
+
+                auto p = segmentIntersectionPoint(segment, edge, eps);
+                if (p)
+                    return p;
+            }
+            return std::nullopt;
+        }
+        case IntersectionReturn::Points: {
+            std::vector<Point2<T>> points;
+
+            for (std::size_t i = 0; i < n; ++i) {
+                Segment<T> edge{
+                    polygon[i],
+                    polygon[(i + 1) % n]
+                };
+
+                if (!segmentsIntersect(segment, edge, eps))
+                    continue;
+
+                auto p = segmentIntersectionPoint(segment, edge, eps);
+                if (p)
+                    points.push_back(*p);
+            }
+            return points;
+        }
+    }
+
+    // Nunca alcançado (R é conhecido em compile‑time)
+    return {};
 }
 
 } // namespace geometry

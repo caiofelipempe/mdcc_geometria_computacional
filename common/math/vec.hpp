@@ -35,8 +35,8 @@ template <typename T, std::size_t N>
 using Simplex = std::array<Point<T, N>, N + 1>;
 
 // Casos clássicos
-template <typename T>
-using Segment = Simplex<T, 1>;
+template <typename T, std::size_t N>
+using Segment = std::array<Point<T, N>, 2>;
 
 template <typename T>
 using Triangle = Simplex<T, 2>;
@@ -50,6 +50,11 @@ using Point2 = Vec<T, 2>;
 
 template <typename T>
 using Point3 = Vec<T, 3>;
+
+// Tipos especiais
+
+template <typename T>
+using Triangle3 = Vec<Point<T, 3>, 3>;
 
 // VectorOrArray dinâmico (N == 0) ou estático (N > 0)
 template <typename T, std::size_t N>
@@ -447,7 +452,7 @@ T orientedArea2(const Point<T, 2>& a, const Point<T, 2>& b, const Point<T, 2>& c
 }
 
 template <typename T>
-T orientedArea2(const Segment<T>& s, const Point<T, 2>& o) {
+T orientedArea2(const Segment<T, 2>& s, const Point<T, 2>& o) {
     return orientedArea2(s[0], s[1], o);
 }
 
@@ -467,7 +472,7 @@ bool isZero(T v, T eps) {
 }
 
 template <typename T>
-bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon<T>()) {
+bool onSegment(const Segment<T, 2>& s, const Point2<T>& p, T eps = default_epsilon<T>()) {
     const auto& a = s[0];
     const auto& b = s[1];
 
@@ -479,7 +484,7 @@ bool onSegment(const Segment<T>& s, const Point2<T>& p, T eps = default_epsilon<
 }
 
 template <typename T>
-bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon<T>()) {
+bool segmentIntersectionExists(const Segment<T, 2>& s1, const Segment<T, 2>& s2, T eps = default_epsilon<T>()) {
     T o1 = orientedArea2(s1, s2[0]);
     T o2 = orientedArea2(s1, s2[1]);
     T o3 = orientedArea2(s2, s1[0]);
@@ -500,7 +505,7 @@ bool segmentIntersectionExists(const Segment<T>& s1, const Segment<T>& s2, T eps
 }
 
 template <typename T>
-std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Segment<T>& s2, T eps = default_epsilon<T>()) {
+std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T, 2>& s1, const Segment<T, 2>& s2, T eps = default_epsilon<T>()) {
     const auto& p = s1[0];
     const auto& p2 = s1[1];
     const auto& q = s2[0];
@@ -532,14 +537,14 @@ std::optional<Point2<T>> segmentIntersectionPoint(const Segment<T>& s1, const Se
 template <typename T>
 std::size_t
 segmentPolygonIntersectionCount(
-    const Segment<T>& segment,
+    const Segment<T, 2>& segment,
     const Polygon<T>& polygon,
     T eps = default_epsilon<T>()
 ) {
     std::size_t count = 0;
 
     for (std::size_t i = 0; i < polygon.size(); ++i) {
-        Segment<T> edge{
+        Segment<T, 2> edge{
             polygon[i],
             polygon[(i + 1) % polygon.size()]
         };
@@ -554,12 +559,12 @@ segmentPolygonIntersectionCount(
 template <typename T>
 bool
 segmentPolygonIntersectionExists(
-    const Segment<T>& segment,
+    const Segment<T, 2>& segment,
     const Polygon<T>& polygon,
     T eps = default_epsilon<T>()
 ) {
     for (std::size_t i = 0; i < polygon.size(); ++i) {
-        Segment<T> edge{
+        Segment<T, 2> edge{
             polygon[i],
             polygon[(i + 1) % polygon.size()]
         };
@@ -574,12 +579,12 @@ segmentPolygonIntersectionExists(
 template <typename T>
 std::optional<Point2<T>>
 segmentPolygonIntersectionFirstPoint(
-    const Segment<T>& segment,
+    const Segment<T, 2>& segment,
     const Polygon<T>& polygon,
     T eps = default_epsilon<T>()
 ) {
     for (std::size_t i = 0; i < polygon.size(); ++i) {
-        Segment<T> edge{
+        Segment<T, 2> edge{
             polygon[i],
             polygon[(i + 1) % polygon.size()]
         };
@@ -598,14 +603,14 @@ segmentPolygonIntersectionFirstPoint(
 template <typename T>
 std::vector<Point2<T>>
 segmentPolygonIntersectionPoints(
-    const Segment<T>& segment,
+    const Segment<T, 2>& segment,
     const Polygon<T>& polygon,
     T eps = default_epsilon<T>()
 ) {
     std::vector<Point2<T>> points;
 
     for (std::size_t i = 0; i < polygon.size(); ++i) {
-        Segment<T> edge{
+        Segment<T, 2> edge{
             polygon[i],
             polygon[(i + 1) % polygon.size()]
         };

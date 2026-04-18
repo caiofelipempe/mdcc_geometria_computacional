@@ -12,7 +12,7 @@ using namespace geometry;
 #include <random>
 
 using Point2f = geometry::Point2<float>;
-using Segmentf = geometry::Segment<float>;
+using Segment2f = geometry::Segment<float, 2>;
 using Polygonf = geometry::Polygon<float>;
 
 // ─────────────────────────────────────────────
@@ -59,17 +59,18 @@ struct Q4State {};
 
 struct Q5State {};
 struct Q6State {
+    Point2f point = {0, 0};
     Polygonf poligon = {
-        Point2f({-.5f, -.8f}), 
-        Point2f({.0f, -.8f}), 
-        Point2f({.5f, -.8f}), 
-        Point2f({1.0f, -0.25f}), 
-        Point2f({.55f, .05f}), 
-        Point2f({.1f, .1f}), 
-        Point2f({0.2f, .8f}), 
-        Point2f({-.5f, .8f}),
-        Point2f({-.4f, .13f}),
-        Point2f({-1.f, -.2f})
+        {-.5f, -.8f}, 
+        {.0f, -.8f}, 
+        {.5f, -.8f}, 
+        {1.0f, -0.25f}, 
+        {.55f, .05f}, 
+        {.1f, .1f}, 
+        {0.2f, .8f}, 
+        {-.5f, .8f},
+        {-.4f, .13f},
+        {-1.f, -.2f}
     };
 };
 
@@ -225,6 +226,16 @@ private:
         glVertex2f(v[0]/m_canvasWidth, v[1]/m_canvasHeight);
         glEnd();
     }
+    
+    void drawSegment(const Segment2f& s, float r, float g, float b) {
+        if (isCanvasInvalid()) return;
+
+        glColor3f(r, g, b);
+        glBegin(GL_LINES);
+        glVertex2f(s[0][0]/m_canvasWidth, s[0][1]/m_canvasHeight);
+        glVertex2f(s[1][0]/m_canvasWidth, s[1][1]/m_canvasHeight);
+        glEnd();
+    }
 
     void drawCircle(float r) {
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
@@ -264,9 +275,17 @@ private:
     }
 
     void renderQ6() {
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
+
         for(int i = 0; i < m_q6.poligon.size(); i++) {
-            auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
-            drawPoint(Point2f({m_q6.poligon[i][0]*(float)maxLength, m_q6.poligon[i][1]*(float)maxLength}), 5, .3, 1., .3);
+            drawSegment({m_q6.poligon[i]*(float)maxLength, m_q6.poligon[(i + 1) % m_q6.poligon.size()]*(float)maxLength}, 1, 1, 1);
+        }
+
+        drawPoint(Point2f({m_q6.point[0]*(float)maxLength, m_q6.point[1]*(float)maxLength}), 5, .3, 1., .3);
+        drawSegment({m_q6.point*(float)maxLength, {(float)m_canvasWidth, 0.f}}, 1, 1, 1);
+
+        for(int i = 0; i < m_q6.poligon.size(); i++) {
+            drawPoint(Point2f({m_q6.poligon[i][0]*(float)maxLength, m_q6.poligon[i][1]*(float)maxLength}), 5, 1., 1., .3);
         }
     }
 

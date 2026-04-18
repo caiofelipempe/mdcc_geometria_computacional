@@ -601,6 +601,42 @@ segmentPolygonIntersectionFirstPoint(
 }
 
 template <typename T>
+T distancePointToSegment(const Point2<T>& p, const Segment<T, 2>& s, T eps = default_epsilon<T>()) {
+    const auto& a = s[0];
+    const auto& b = s[1];
+    
+    // Vetores
+    Point2<T> ab = { b[0] - a[0], b[1] - a[1] };
+    Point2<T> ap = { p[0] - a[0], p[1] - a[1] };
+    
+    T dot = ap[0] * ab[0] + ap[1] * ab[1];
+    
+    T len2 = ab[0] * ab[0] + ab[1] * ab[1];
+    
+    if (len2 <= eps * eps) {
+        T dx = p[0] - a[0];
+        T dy = p[1] - a[1];
+        return std::sqrt(dx * dx + dy * dy);
+    }
+    
+    T t = dot / len2;
+    
+    Point2<T> closest;
+    if (t < 0) {
+        closest = a;
+    } else if (t > 1) {
+        closest = b;
+    } else {
+        closest = { a[0] + t * ab[0], a[1] + t * ab[1] };
+    }
+    
+    // Distância euclidiana
+    T dx = p[0] - closest[0];
+    T dy = p[1] - closest[1];
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+template <typename T>
 std::vector<Point2<T>>
 segmentPolygonIntersectionPoints(
     const Segment<T, 2>& segment,
@@ -624,6 +660,64 @@ segmentPolygonIntersectionPoints(
     }
 
     return points;
+}
+
+template <typename T>
+bool isPointInsidePolygonShot(const Point2<T>& point, const Polygon<T>& polygon, T eps = default_epsilon<T>()) {
+    int n = polygon.size();
+    bool isInside = false;
+
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+        if (((polygon[i][1] > point[1]) != (polygon[j][1] > point[1])) &&
+            (point[0] < (polygon[j][0] - polygon[i][0]) * (point[1] - polygon[i][1]) / 
+            (polygon[j][1] - polygon[i][1]) + polygon[i][0])) {
+            isInside = !isInside;
+        }
+    }
+
+    return isInside;
+}
+
+template <typename T>
+double getAnglePointSegment(Point2<T> p, Point2<T> v1, Point2<T> v2) {
+    // Vectors relative to point P
+    double ax = v1[0] - p[0];
+    double ay = v1[1] - p[1];
+    double bx = v2[0] - p[0];
+    double by = v2[1] - p[1];
+
+    double dot = ax * bx + ay * by;
+    double magA = std::sqrt(ax * ax + ay * ay);
+    double magB = std::sqrt(bx * bx + by * by);
+
+    // Guard against division by zero (point on a vertex)
+    if (magA * magB == 0) return 0;
+
+    double cosTheta = dot / (magA * magB);
+
+    // Clamp for floating point precision errors
+    if (cosTheta > 1.0) cosTheta = 1.0;
+    if (cosTheta < -1.0) cosTheta = -1.0;
+
+    double angle = std::acos(cosTheta);
+    
+    // Use 2D cross product to determine the direction (sign) of the angle
+    double crossProduct = ax * by - ay * bx;
+    
+    return (crossProduct < 0) ? -angle : angle;
+}
+
+template <typename T>
+bool isPointInsidePolygonWinding(const Point2<T>& p, const Polygon<T>& polygon) {
+    double totalAngle = 0;
+    int n = polygon.size();
+
+    for (int i = 0; i < n; i++) {
+        totalAngle += getAnglePointSegment(p, polygon[i], polygon[(i + 1) % n]);
+    }
+
+    // If the absolute sum is close to 2*PI, the point is inside
+    return std::abs(totalAngle) > M_PI; 
 }
 
 } // namespace geometry

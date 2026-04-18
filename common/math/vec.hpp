@@ -36,7 +36,7 @@ using Simplex = std::array<Point<T, N>, N + 1>;
 
 // Casos clássicos
 template <typename T, std::size_t N>
-using Segment = std::array<Point<T, N>, 2>;
+using Segment = Vec<Point<T, N>, 2>;
 
 template <typename T>
 using Triangle = Simplex<T, 2>;

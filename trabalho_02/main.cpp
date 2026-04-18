@@ -14,6 +14,7 @@ using namespace geometry;
 using Point2f = geometry::Point2<float>;
 using Segment2f = geometry::Segment<float, 2>;
 using Polygonf = geometry::Polygon<float>;
+using ColorRGB = Vec<float, 3>;
 
 // ─────────────────────────────────────────────
 //  Constantes globais
@@ -59,7 +60,8 @@ struct Q4State {};
 
 struct Q5State {};
 struct Q6State {
-    Point2f point = {0, 0};
+    float maxLength;
+    Point2f point = {-0.f, 0.f};
     Polygonf poligon = {
         {-.5f, -.8f}, 
         {.0f, -.8f}, 
@@ -72,6 +74,9 @@ struct Q6State {
         {-.4f, .13f},
         {-1.f, -.2f}
     };
+    Segment2f ray;
+    std::vector<Point2f> interseptionResult;
+    bool isInside;
 };
 
 // ─────────────────────────────────────────────
@@ -86,6 +91,15 @@ private:
     int m_height = 600;
     int m_canvasWidth;
     int m_canvasHeight;
+
+    static inline constexpr const ColorRGB BLACK = {0, 0, 0};
+    static inline constexpr const ColorRGB RED = {1, 0, 0};
+    static inline constexpr const ColorRGB GREEN = {0, 1, 0};
+    static inline constexpr const ColorRGB BLUE = {0, 0, 1};
+    static inline constexpr const ColorRGB YELLOW = {1, 1, 0};
+    static inline constexpr const ColorRGB CYAN = {0, 1, 1};
+    static inline constexpr const ColorRGB MAGENTA = {1, 0, 1};
+    static inline constexpr const ColorRGB WHITE = {1, 1, 1};
 
     Questao m_questao = Questao::Q1;
     int m_questaoComboIndex = 0;
@@ -134,7 +148,7 @@ protected:
                 updateQ3();
                 renderQ3();
             } break;
-        case Questao::Q6: renderQ6(); break;
+        case Questao::Q6: {updateQ6(); renderQ6();} break;
         default: break;
         }
     }
@@ -193,58 +207,74 @@ private:
         }
     }
 
+    void updateQ6() {
+        m_q6.maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
+        if(input().mouseButtons[GLFW_MOUSE_BUTTON_LEFT]) {
+            // Converte coordenadas de tela para coordenadas de mundo
+            float x = ((input().mouseX - PANEL_WIDTH) / (float)m_canvasWidth * 2.0f - 1.0f)/0.7f;
+            float y = ((m_height - input().mouseY) / (float)m_canvasHeight * 2.0f - 1.0f)/0.7f;
+            m_q6.point = {x, y};
+        }
+
+        m_q6.ray = { m_q6.point, Point2f{1.f/0.7, m_q6.point[1]} };
+        
+        m_q6.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.poligon);
+        m_q6.isInside = m_q6.interseptionResult.size() % 2 == 1;
+    }
+
     // ──────────────── Render ────────────────
     bool isCanvasInvalid() {
         return m_canvasHeight <= 0 || m_canvasWidth <= 0;
     }
 
-    void drawPoint(const Point2f& p, float size, float r, float g, float b) {
+    void drawPoint(const Point2f& p, float size, const ColorRGB color = WHITE) {
         glPointSize(size);
-        glColor3f(r, g, b);
+        glColor3f(color[0], color[1], color[2]);
 
         glBegin(GL_POINTS);
             glVertex2f(p[0]/m_canvasWidth, p[1]/m_canvasHeight);
         glEnd();
     }
 
-    void drawAxes() {
+    void drawAxes(const ColorRGB color = WHITE) {
         if (isCanvasInvalid()) return;
 
-        glColor3f(1, 1, 1);
+        glColor3f(color[0], color[1], color[2]);
         glBegin(GL_LINES);
         glVertex2f(-1, 0); glVertex2f(1, 0);
         glVertex2f(0, -1); glVertex2f(0, 1);
         glEnd();
     }
 
-    void drawVectorLine(const Point2f& v, float r, float g, float b) {
+    void drawVectorLine(const Point2f& v, const ColorRGB color = WHITE) {
         if (isCanvasInvalid()) return;
 
-        glColor3f(r, g, b);
+        glColor3f(color[0], color[1], color[2]);
         glBegin(GL_LINES);
         glVertex2f(0, 0);
         glVertex2f(v[0]/m_canvasWidth, v[1]/m_canvasHeight);
         glEnd();
     }
     
-    void drawSegment(const Segment2f& s, float r, float g, float b) {
+    void drawSegment(const Segment2f& s, const ColorRGB color = WHITE) {
         if (isCanvasInvalid()) return;
 
-        glColor3f(r, g, b);
+        glColor3f(color[0], color[1], color[2]);
         glBegin(GL_LINES);
         glVertex2f(s[0][0]/m_canvasWidth, s[0][1]/m_canvasHeight);
         glVertex2f(s[1][0]/m_canvasWidth, s[1][1]/m_canvasHeight);
         glEnd();
     }
 
-    void drawCircle(float r) {
+    void drawCircle(float r, const ColorRGB color = WHITE) {
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
         if (isCanvasInvalid()) return;
-
+        
+        glColor3f(color[0], color[1], color[2]);
         glBegin(GL_LINE_LOOP);
         for (int i = 0; i < 40; ++i) {
             float t = 2.0f * PI * i / 40.0f;
-            glVertex2f(std::cos(t) * r/maxLength, std::sin(t) * r/maxLength);
+            glVertex2f(std::cos(t) * r/m_canvasWidth, std::sin(t) * r/m_canvasHeight);
         }
         glEnd();
     }
@@ -252,40 +282,43 @@ private:
     void renderQ1() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
-        drawVectorLine(m_q1.vec0*(float)maxLength, 0, 1, 0);
-        drawVectorLine(m_q1.vec1*(float)maxLength, 0, 0, 1);
+        drawVectorLine(m_q1.vec0*(float)maxLength, GREEN);
+        drawVectorLine(m_q1.vec1*(float)maxLength, BLUE);
     }
 
     void renderQ2() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight);
-        drawVectorLine(m_q2.vec*(float)maxLength, 0, 1, 0);
+        drawVectorLine(m_q2.vec*(float)maxLength, GREEN);
     }
 
     void renderQ3() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight)/2;
-        drawVectorLine(m_q3.vec0*(float)maxLength, 0, 1, 0);
-        drawVectorLine(m_q3.vec1*(float)maxLength, 0, 0, 1);
+        drawVectorLine(m_q3.vec0*(float)maxLength, GREEN);
+        drawVectorLine(m_q3.vec1*(float)maxLength, BLUE);
 
         if (m_q3.selectedOp <= Q3State::SUBTRACAO)
-            drawVectorLine(m_q3.vecr*(float)maxLength, 1, 1, 0);
+            drawVectorLine(m_q3.vecr*(float)maxLength, YELLOW);
         else
-            drawCircle(m_q3.prodr*(float)maxLength);
+            drawCircle(m_q3.prodr*(float)maxLength, MAGENTA);
     }
 
     void renderQ6() {
-        auto maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
 
         for(int i = 0; i < m_q6.poligon.size(); i++) {
-            drawSegment({m_q6.poligon[i]*(float)maxLength, m_q6.poligon[(i + 1) % m_q6.poligon.size()]*(float)maxLength}, 1, 1, 1);
+            drawSegment({m_q6.poligon[i]*(float)m_q6.maxLength, m_q6.poligon[(i + 1) % m_q6.poligon.size()]*(float)m_q6.maxLength}, WHITE);
         }
 
-        drawPoint(Point2f({m_q6.point[0]*(float)maxLength, m_q6.point[1]*(float)maxLength}), 5, .3, 1., .3);
-        drawSegment({m_q6.point*(float)maxLength, {(float)m_canvasWidth, 0.f}}, 1, 1, 1);
+        drawSegment({m_q6.ray[0]*m_q6.maxLength, m_q6.ray[1]*m_q6.maxLength}, BLUE);
+        drawPoint(m_q6.point*m_q6.maxLength, 5, m_q6.isInside ? ColorRGB({.3, 1., .3}) : ColorRGB({1., .3, .3}));
 
         for(int i = 0; i < m_q6.poligon.size(); i++) {
-            drawPoint(Point2f({m_q6.poligon[i][0]*(float)maxLength, m_q6.poligon[i][1]*(float)maxLength}), 5, 1., 1., .3);
+            drawPoint(Point2f({m_q6.poligon[i][0]*(float)m_q6.maxLength, m_q6.poligon[i][1]*(float)m_q6.maxLength}), 5, ColorRGB({1., 1., .3}));
+        }
+
+        for (const auto& p : m_q6.interseptionResult) {
+            drawPoint(Point2f({p[0]*(float)m_q6.maxLength, p[1]*(float)m_q6.maxLength}), 5, BLUE);
         }
     }
 

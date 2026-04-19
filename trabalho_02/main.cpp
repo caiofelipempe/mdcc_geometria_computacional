@@ -374,6 +374,11 @@ private:
         ImGui::DragFloat2("##v1", &m_q1.vec1[0], 0.01f, -1, 1);
         warnIfZero(m_q1.vec1);
         if (pa1) ImGui::Text("Pseudoângulo: %.4f", pa1.value());
+        
+        if (pa0 && pa1) {
+            ImGui::Separator();
+            ImGui::TextWrapped("Angulo entre v1 e v2:\n %.4f", pa1.value() - pa0.value());
+        }
     }
 
     void uiQ2() {

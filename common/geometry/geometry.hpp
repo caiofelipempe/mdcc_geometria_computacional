@@ -10,6 +10,8 @@
 #include <expected>
 #include <optional>
 #include <stdexcept>
+#include <algorithm>
+
 
 namespace geometry {
 
@@ -360,27 +362,9 @@ constexpr Vec<T, 4> cross(
     };
 }
 
-// ------------------------------------------------------------
-// Pseudoangle (2D)
-//
-// Mapeamento CCW contínuo em [0, 8):
-//
-//         octante 1      octante 2
-//   (eixo +x, y=0) -> 0  (+x, +y) cresce de 0 até 2
-//         octante 3      octante 4
-//   (eixo +y, x=0) -> 2  (-x, +y) cresce de 2 até 4
-//         octante 5      octante 6
-//   (eixo -x, y=0) -> 4  (-x, -y) cresce de 4 até 6
-//         octante 7      octante 8
-//   (eixo -y, x=0) -> 6  (+x, -y) cresce de 6 até 8
-//
-// t = min(|x|,|y|) / max(|x|,|y|) ∈ [0,1], representa a fração
-// dentro de cada octante.
-// ------------------------------------------------------------
-
 template <Arithmetic T>
 std::expected<T, Error>
-pseudoangle(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
+pseudoangleOctante(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T x = v[0];
     const T y = v[1];
 
@@ -412,19 +396,9 @@ pseudoangle(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     }
 }
 
-// ------------------------------------------------------------
-// Pseudoangle alternativo (quadrantes, range [0, 4))
-//
-// Convenção CCW:
-//   Q1 (+x, +y): [0, 1)  — t = y/(|x|+|y|) cresce de 0 a 1
-//   Q2 (-x, +y): [1, 2)  — t = |x|/(|x|+|y|) cresce de 0 a 1
-//   Q3 (-x, -y): [2, 3)  — t = |y|/(|x|+|y|) cresce de 0 a 1
-//   Q4 (+x, -y): [3, 4)  — t = x/(|x|+|y|) cresce de 0 a 1
-// ------------------------------------------------------------
-
 template <Arithmetic T>
 std::expected<T, Error>
-pseudoangleAlt(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
+pseudoangleQuadrant(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T x = v[0];
     const T y = v[1];
 
@@ -452,8 +426,8 @@ pseudoangleAlt(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
 // Vetores zero são enviados para o final (greater-than-all).
 template <Arithmetic T>
 bool pseudoangle_less(const Vec<T, 2>& a, const Vec<T, 2>& b) {
-    const auto pa = pseudoangle(a);
-    const auto pb = pseudoangle(b);
+    const auto pa = pseudoangleOctante(a);
+    const auto pb = pseudoangleOctante(b);
 
     if (!pa.has_value() && !pb.has_value()) return false; // ambos zero: iguais
     if (!pa.has_value()) return false; // zero vai para o fim
@@ -467,8 +441,8 @@ bool pseudoangle_less(const Vec<T, 2>& a, const Vec<T, 2>& b) {
 template <Arithmetic T>
 std::expected<T, Error>
 pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
-    const auto pa = pseudoangle(a);
-    const auto pb = pseudoangle(b);
+    const auto pa = pseudoangleOctante(a);
+    const auto pb = pseudoangleOctante(b);
 
     if (!pa.has_value() || !pb.has_value())
         return std::unexpected(Error::make("One or both vectors are zero"));
@@ -632,40 +606,32 @@ segmentPolygonIntersectionFirstPoint(
     return std::nullopt;
 }
 
-template <typename T>
-T distancePointToSegment(const Point2<T>& p, const Segment<T, 2>& s, T eps = default_epsilon<T>()) {
-    const auto& a = s[0];
-    const auto& b = s[1];
-    
-    // Vetores
-    Point2<T> ab = { b[0] - a[0], b[1] - a[1] };
-    Point2<T> ap = { p[0] - a[0], p[1] - a[1] };
-    
-    T dot = ap[0] * ab[0] + ap[1] * ab[1];
-    
-    T len2 = ab[0] * ab[0] + ab[1] * ab[1];
-    
-    if (len2 <= eps * eps) {
-        T dx = p[0] - a[0];
-        T dy = p[1] - a[1];
-        return std::sqrt(dx * dx + dy * dy);
-    }
-    
-    T t = dot / len2;
-    
-    Point2<T> closest;
-    if (t < 0) {
-        closest = a;
-    } else if (t > 1) {
-        closest = b;
-    } else {
-        closest = { a[0] + t * ab[0], a[1] + t * ab[1] };
-    }
-    
-    // Distância euclidiana
-    T dx = p[0] - closest[0];
-    T dy = p[1] - closest[1];
-    return std::sqrt(dx * dx + dy * dy);
+template <typename T, std::size_t N>
+T distancePointSegmentSquared(const Vec<T, N>& P, const Vec<T, N>& A, const Vec<T, N>& B)
+{
+    Vec<T, N> AB = sub(B, A);
+    Vec<T, N> AP = sub(P, A);
+
+    T ab2 = dot(AB, AB);
+
+    // Segmento degenerado (A == B)
+    if (ab2 == 0.0)
+        return dot(AP, AP);
+
+    T t = dot(AP, AB) / ab2;
+    t = std::clamp(t, 0.0, 1.0);
+
+    Vec<T, N> d(AP.size());
+    for (std::size_t i = 0; i < d.size(); ++i)
+        d[i] = AP[i] - t * AB[i];
+
+    return dot(d, d);
+}
+
+
+template <typename T, std::size_t N>
+T distancePointSegment(const Vec<T, N>& P, const Vec<T, N>& A, const Vec<T, N>& B) {
+    return std::sqrt(distancePointSegmentSquared(P, A, B));
 }
 
 template <typename T>
@@ -711,45 +677,33 @@ bool isPointInsidePolygonRaycast(const Point2<T>& point, const Polygon<T>& polyg
 }
 
 template <typename T>
-double getAnglePointSegment(Point2<T> p, Point2<T> v1, Point2<T> v2) {
-    // Vectors relative to point P
-    double ax = v1[0] - p[0];
-    double ay = v1[1] - p[1];
-    double bx = v2[0] - p[0];
-    double by = v2[1] - p[1];
+bool isPointInsidePolygonWinding(const Point2<T>& p, const Polygon<T>& polygon)
+{
+    int windingNumber = 0;
+    size_t n = polygon.size();
 
-    double dot = ax * bx + ay * by;
-    double magA = std::sqrt(ax * ax + ay * ay);
-    double magB = std::sqrt(bx * bx + by * by);
-
-    // Guard against division by zero (point on a vertex)
-    if (magA * magB == 0) return 0;
-
-    double cosTheta = dot / (magA * magB);
-
-    // Clamp for floating point precision errors
-    if (cosTheta > 1.0) cosTheta = 1.0;
-    if (cosTheta < -1.0) cosTheta = -1.0;
-
-    double angle = std::acos(cosTheta);
-    
-    // Use 2D cross product to determine the direction (sign) of the angle
-    double crossProduct = ax * by - ay * bx;
-    
-    return (crossProduct < 0) ? -angle : angle;
-}
-
-template <typename T>
-bool isPointInsidePolygonWinding(const Point2<T>& p, const Polygon<T>& polygon) {
-    double totalAngle = 0;
-    int n = polygon.size();
-
-    for (int i = 0; i < n; i++) {
-        totalAngle += getAnglePointSegment(p, polygon[i], polygon[(i + 1) % n]);
+    for (size_t i = 0; i < n; ++i) {
+        const auto& v1 = polygon[i];
+        const auto& v2 = polygon[(i + 1) % n];
+        
+        // Aresta cruza para cima
+        if (v1[1] <= p[1]) {
+            if (v2[1] > p[1]) { // cruzamento ascendente
+                if (orientedArea2(Triangle{v1, v2, p}) > 0)
+                    ++windingNumber;
+            }
+        }
+        // Aresta cruza para baixo
+        else {
+            if (v2[1] <= p[1]) { // cruzamento descendente
+                if (orientedArea2(Triangle{v1, v2, p}) < 0)
+                    --windingNumber;
+            }
+        }
     }
 
-    // If the absolute sum is close to 2*PI, the point is inside
-    return std::abs(totalAngle) > M_PI; 
+    return windingNumber != 0;
 }
+
 
 } // namespace geometry

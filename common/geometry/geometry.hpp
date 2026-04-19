@@ -38,8 +38,8 @@ using Simplex = std::array<Point<T, N>, N + 1>;
 template <typename T, std::size_t N>
 using Segment = Vec<Point<T, N>, 2>;
 
-template <typename T>
-using Triangle = Simplex<T, 2>;
+template <typename T, std::size_t N>
+using Triangle = std::array<Point<T, N>, 3>;
 
 template <typename T>
 using Tetraedro = Simplex<T, 3>;
@@ -51,10 +51,8 @@ using Point2 = Vec<T, 2>;
 template <typename T>
 using Point3 = Vec<T, 3>;
 
-// Tipos especiais
-
 template <typename T>
-using Triangle3 = Vec<Point<T, 3>, 3>;
+using Quaternion = Vec<T, 4>;
 
 // VectorOrArray dinâmico (N == 0) ou estático (N > 0)
 template <typename T, std::size_t N>
@@ -115,6 +113,14 @@ constexpr Vec<T, N> operator-(const Vec<T, N>& v) noexcept {
 }
 
 template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N> operator*(const Vec<T, N>& a, Vec<T, N>& b) noexcept {
+    Vec<T, N> r{};
+    for (std::size_t i = 0; i < N; ++i)
+        r[i] = a[i] * b[i];
+    return r;
+}
+
+template <Arithmetic T, std::size_t N>
 constexpr Vec<T, N> operator*(const Vec<T, N>& v, T s) noexcept {
     Vec<T, N> r{};
     for (std::size_t i = 0; i < N; ++i)
@@ -125,6 +131,18 @@ constexpr Vec<T, N> operator*(const Vec<T, N>& v, T s) noexcept {
 template <Arithmetic T, std::size_t N>
 constexpr Vec<T, N> operator*(T s, const Vec<T, N>& v) noexcept {
     return v * s;
+}
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N> operator/(const Vec<T, N>& a, const Vec<T, N>& b) {
+    Vec<T, N> r{};
+    for (std::size_t i = 0; i < N; ++i)
+    {
+        if constexpr (!std::is_floating_point_v<T>)
+            if (b[i] == T{}) throw std::domain_error("Division by zero");
+        r[i] = a[i] / b[i];
+    }
+    return r;
 }
 
 template <Arithmetic T, std::size_t N>
@@ -162,12 +180,26 @@ constexpr Vec<T, N>& operator*=(Vec<T, N>& v, T s) noexcept {
 }
 
 template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator*=(Vec<T, N>& a, Vec<T, N> b) noexcept {
+    for (std::size_t i = 0; i < N; ++i)
+        a[i] *= b[i];
+    return a;
+}
+
+template <Arithmetic T, std::size_t N>
 constexpr Vec<T, N>& operator/=(Vec<T, N>& v, T s) {
     if constexpr (!std::is_floating_point_v<T>)
         if (s == T{}) throw std::domain_error("Division by zero");
     for (std::size_t i = 0; i < N; ++i)
         v[i] /= s;
     return v;
+}
+
+template <Arithmetic T, std::size_t N>
+constexpr Vec<T, N>& operator/=(Vec<T, N>& a, Vec<T, N> b) noexcept {
+    for (std::size_t i = 0; i < N; ++i)
+        a[i] /= b[i];
+    return a;
 }
 
 // ------------------------------------------------------------
@@ -445,25 +477,25 @@ pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
 }
 
 template <typename T>
-T orientedArea2(const Point<T, 2>& a, const Point<T, 2>& b, const Point<T, 2>& c) {
+T orientedArea2(const Triangle<T, 2>& tri) {
+    const auto& a = tri[0];
+    const auto& b = tri[1];
+    const auto& c = tri[2];
+
     Point<T, 2> ab{ b[0] - a[0], b[1] - a[1] };
     Point<T, 2> ac{ c[0] - a[0], c[1] - a[1] };
     return cross(ab, ac);
 }
 
 template <typename T>
-T orientedArea2(const Segment<T, 2>& s, const Point<T, 2>& o) {
-    return orientedArea2(s[0], s[1], o);
-}
+Vec<T, 3> triangleNormal(const Triangle<T, 3>& tri) {
+    const auto& a = tri[0];
+    const auto& b = tri[1];
+    const auto& c = tri[2];
 
-template <typename T>
-Orientation orientation(const Point2<T>& a, const Point2<T>& b, const Point2<T>& c, T eps = default_epsilon<T>()) {
-    T val = orientedArea2(a, b, c);
-
-    if (std::abs(val) <= eps) return Orientation::Colinear;
-    return (val > 0)
-        ? Orientation::CounterClockwise
-        : Orientation::Clockwise;
+    Point<T, 3> ab{ b[0] - a[0], b[1] - a[1], b[2] - a[2] };
+    Point<T, 3> ac{ c[0] - a[0], c[1] - a[1], c[2] - a[2] };
+    return cross(ab, ac);
 }
 
 template <typename T>
@@ -485,10 +517,10 @@ bool onSegment(const Segment<T, 2>& s, const Point2<T>& p, T eps = default_epsil
 
 template <typename T>
 bool segmentIntersectionExists(const Segment<T, 2>& s1, const Segment<T, 2>& s2, T eps = default_epsilon<T>()) {
-    T o1 = orientedArea2(s1, s2[0]);
-    T o2 = orientedArea2(s1, s2[1]);
-    T o3 = orientedArea2(s2, s1[0]);
-    T o4 = orientedArea2(s2, s1[1]);
+    T o1 = orientedArea2(Triangle{s1[0], s1[1], s2[0]});
+    T o2 = orientedArea2(Triangle{s1[0], s1[1], s2[1]});
+    T o3 = orientedArea2(Triangle{s2[0], s2[1], s1[0]});
+    T o4 = orientedArea2(Triangle{s2[0], s2[1], s1[1]});
 
     // Interseção própria
     if ((o1 > eps && o2 < -eps || o1 < -eps && o2 > eps) &&
@@ -663,7 +695,7 @@ segmentPolygonIntersectionPoints(
 }
 
 template <typename T>
-bool isPointInsidePolygonShot(const Point2<T>& point, const Polygon<T>& polygon, T eps = default_epsilon<T>()) {
+bool isPointInsidePolygonRaycast(const Point2<T>& point, const Polygon<T>& polygon, T eps = default_epsilon<T>()) {
     int n = polygon.size();
     bool isInside = false;
 

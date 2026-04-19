@@ -5,7 +5,7 @@ add_executable(trabalho_02
 target_link_libraries(trabalho_02
     PRIVATE
         renderer
-        math
+        geometry
         error
         
         OpenGL::GL

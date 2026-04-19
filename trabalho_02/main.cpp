@@ -1,6 +1,6 @@
 #include "renderer.hpp"
 #include "input.h"
-#include "vec.hpp"
+#include "geometry.hpp"
 
 using namespace geometry;
 
@@ -229,7 +229,7 @@ private:
             m_q6.ray = { m_q6.point, Point2f{1.f/0.7, m_q6.point[1]} };
             
             m_q6.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.poligon, 0.0f);
-            m_q6.isInside = geometry::isPointInsidePolygonShot(m_q6.point, m_q6.poligon);
+            m_q6.isInside = geometry::isPointInsidePolygonRaycast(m_q6.point, m_q6.poligon);
         } else {
             m_q6.isInside = geometry::isPointInsidePolygonWinding(m_q6.point, m_q6.poligon);
         }

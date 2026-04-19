@@ -56,7 +56,11 @@ struct Q3State {
     float prodr = 0.0f;
 };
 
-struct Q4State {};
+struct Q4State {
+    Point2f  vec0{};
+    Point2f  vec1{};
+    float prodr = 0.0f;
+};
 
 struct Q5State {};
 struct Q6State {
@@ -155,6 +159,10 @@ protected:
                 updateQ3();
                 renderQ3();
             } break;
+        case Questao::Q4: {
+                updateQ4();
+                renderQ4();
+            } break;
         case Questao::Q6: {updateQ6(); renderQ6();} break;
         default: break;
         }
@@ -186,6 +194,7 @@ protected:
         case Questao::Q1: uiQ1(); break;
         case Questao::Q2: uiQ2(); break;
         case Questao::Q3: uiQ3(); break;
+        case Questao::Q4: uiQ4(); break;
         case Questao::Q6: uiQ6(); break;
         default:{
             ImGui::TextDisabled("(não implementado)");
@@ -213,6 +222,10 @@ private:
             break;
         default: break;
         }
+    }
+
+    void updateQ4() {
+        m_q4.prodr = geometry::cross(m_q4.vec0, m_q4.vec1);
     }
 
     void updateQ6() {
@@ -308,13 +321,22 @@ private:
     void renderQ3() {
         drawAxes();
         auto maxLength = std::min(m_canvasWidth, m_canvasHeight)/2;
-        drawVectorLine(m_q3.vec0*(float)maxLength, GREEN);
+        drawVectorLine(m_q3.vec0*(float)maxLength, YELLOW);
         drawVectorLine(m_q3.vec1*(float)maxLength, BLUE);
 
         if (m_q3.selectedOp <= Q3State::SUBTRACAO)
-            drawVectorLine(m_q3.vecr*(float)maxLength, YELLOW);
+            drawVectorLine(m_q3.vecr*(float)maxLength, GREEN);
         else
-            drawCircle(m_q3.prodr*(float)maxLength, MAGENTA);
+            drawCircle(m_q3.prodr*(float)maxLength, m_q3.prodr >= 0 ? GREEN : RED);
+    }
+
+    void renderQ4() {
+        drawAxes();
+        auto maxLength = std::min(m_canvasWidth, m_canvasHeight)/2;
+        drawVectorLine(m_q4.vec0*(float)maxLength, YELLOW);
+        drawVectorLine(m_q4.vec1*(float)maxLength, BLUE);
+
+        drawCircle(m_q4.prodr*(float)maxLength, m_q4.prodr >= 0 ? GREEN : RED);
     }
 
     void renderQ6() {
@@ -339,8 +361,8 @@ private:
 
     // ──────────────── UI ────────────────
     void uiQ1() {
-        auto pa0 = geometry::pseudoangle(m_q1.vec0);
-        auto pa1 = geometry::pseudoangle(m_q1.vec1);
+        auto pa0 = geometry::pseudoangleOctante(m_q1.vec0);
+        auto pa1 = geometry::pseudoangleOctante(m_q1.vec1);
 
         ImGui::Text("Vetor 1:");
         ImGui::DragFloat2("##v0", &m_q1.vec0[0], 0.01f, -1, 1);
@@ -359,8 +381,8 @@ private:
         ImGui::DragFloat2("##v", &m_q2.vec[0], 0.01f, -1, 1);
         warnIfZero(m_q2.vec);
 
-        auto pa = geometry::pseudoangle(m_q2.vec);
-        auto pb = geometry::pseudoangleAlt(m_q2.vec);
+        auto pa = geometry::pseudoangleOctante(m_q2.vec);
+        auto pb = geometry::pseudoangleQuadrant(m_q2.vec);
 
         if (pa) {
             ImGui::Text("Octante: %.4f", pa.value());
@@ -386,6 +408,20 @@ private:
             ImGui::Text("Resultado: %.4f", m_q3.prodr);
         else
             ImGui::Text("Resultado: (%.4f, %.4f)", m_q3.vecr[0], m_q3.vecr[1]);
+    }
+
+    void uiQ4() {
+        ImGui::DragFloat2("Vetor A", &m_q4.vec0[0], 0.01f, -1, 1);
+        ImGui::DragFloat2("Vetor B", &m_q4.vec1[0], 0.01f, -1, 1);
+
+        if (ImGui::Button("Aleatório")) {
+            m_q4.vec0 = { m_dist(m_rng), m_dist(m_rng) };
+            m_q4.vec1 = { m_dist(m_rng), m_dist(m_rng) };
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Resultado: %.4f", m_q4.prodr);
     }
 
     void uiQ6() {

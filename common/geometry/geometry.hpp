@@ -6,11 +6,12 @@
 #include <vector>
 #include <cstddef>
 #include <type_traits>
-#include <cmath>
 #include <expected>
 #include <optional>
 #include <stdexcept>
+#include <random>
 #include <algorithm>
+#include <cmath>
 
 
 namespace geometry {
@@ -705,5 +706,114 @@ bool isPointInsidePolygonWinding(const Point2<T>& p, const Polygon<T>& polygon)
     return windingNumber != 0;
 }
 
+template <typename T, std::size_t N>
+Polygon<T, N> generateRandomPolygon(size_t numPoints) {
+    static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");
+    
+    Polygon<T, N> polygon;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<T> angleDist(0, 2 * M_PI);
+    std::uniform_real_distribution<T> radiusDist(0.1, 1.0);
+    
+    // Método 1: Pontos em círculo com raios aleatórios (garante polígono simples)
+    std::vector<std::pair<T, T>> polarPoints;
+    std::vector<T> angles(numPoints);
+    
+    // Gerar ângulos aleatórios e ordená-los
+    for (size_t i = 0; i < numPoints; ++i) {
+        angles[i] = angleDist(gen);
+    }
+    std::sort(angles.begin(), angles.end());
+    
+    // Gerar raios aleatórios para cada ângulo
+    for (size_t i = 0; i < numPoints; ++i) {
+        T radius = radiusDist(gen);
+        T x = radius * std::cos(angles[i]);
+        T y = radius * std::sin(angles[i]);
+        polygon.push_back({x, y});
+    }
+    
+    return polygon;
+}
+
+// Método 2: Pontos aleatórios em retângulo + convex hull (polígono convexo)
+template <typename T, std::size_t N>
+Polygon<T, N> generateRandomConvexPolygon(size_t numPoints) {
+    static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");
+    
+    Polygon<T, N> polygon;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<T> dist(-1, 1);
+    
+    // Gerar pontos aleatórios
+    std::vector<Point<T, 2>> points;
+    for (size_t i = 0; i < numPoints * 2; ++i) {
+        points.push_back({dist(gen), dist(gen)});
+    }
+    
+    // Calcular convex hull (algoritmo de Graham scan simplificado)
+    // Ordenar por ângulo em relação ao ponto mais baixo-esquerdo
+    auto lowest = *std::min_element(points.begin(), points.end(),
+        [](const auto& a, const auto& b) {
+            return a[1] < b[1] || (a[1] == b[1] && a[0] < b[0]);
+        });
+    
+    std::sort(points.begin(), points.end(),
+        [&lowest](const auto& a, const auto& b) {
+            T angleA = std::atan2(a[1] - lowest[1], a[0] - lowest[0]);
+            T angleB = std::atan2(b[1] - lowest[1], b[0] - lowest[0]);
+            return angleA < angleB;
+        });
+    
+    // Graham scan
+    for (const auto& p : points) {
+        while (polygon.size() >= 2) {
+            const auto& p1 = polygon[polygon.size() - 2];
+            const auto& p2 = polygon[polygon.size() - 1];
+            T cross = (p2[0] - p1[0]) * (p[1] - p1[1]) -
+                      (p2[1] - p1[1]) * (p[0] - p1[0]);
+            if (cross <= 0) {
+                polygon.pop_back();
+            } else {
+                break;
+            }
+        }
+        polygon.push_back(p);
+        
+        if (polygon.size() >= numPoints) break;
+    }
+    
+    return polygon;
+}
+
+// Método 3: Perturbação de polígono regular (mais controle)
+template <typename T, std::size_t N>
+Polygon<T, N> generateRandomRegularPolygon(size_t numPoints, T maxPerturbation = 0.2) {
+    static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");
+    
+    Polygon<T, N> polygon;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<T> perturbDist(-maxPerturbation, maxPerturbation);
+    
+    // Gerar polígono regular no círculo unitário
+    for (size_t i = 0; i < numPoints; ++i) {
+        T angle = 2 * M_PI * i / numPoints;
+        T radius = 1.0 + perturbDist(gen);
+        T x = radius * std::cos(angle);
+        T y = radius * std::sin(angle);
+        
+        // Adicionar perturbação angular opcional
+        T anglePerturb = perturbDist(gen) * 0.2;
+        x = radius * std::cos(angle + anglePerturb);
+        y = radius * std::sin(angle + anglePerturb);
+        
+        polygon.push_back({x, y});
+    }
+    
+    return polygon;
+}
 
 } // namespace geometry

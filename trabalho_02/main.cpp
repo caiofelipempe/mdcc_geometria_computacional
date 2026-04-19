@@ -62,7 +62,23 @@ struct Q4State {
     float prodr = 0.0f;
 };
 
-struct Q5State {};
+struct Q5State {
+        enum Method { RAYCAST, WINDING };
+    Method method = RAYCAST;
+    static inline constexpr const char* METHOD_ITEMS[] = {
+        "Tiro", "Rotação"
+    };
+    int m_methodComboIndex = 0;
+    float maxLength;
+    Point2f point{};
+    bool isInside;
+    int randomPoints = 15;
+    Polygon<float, 0> polygon = generateRandomPolygon<float, 0>(randomPoints);
+
+    Segment2f ray;
+    std::vector<Point2f> interseptionResult;
+};
+
 struct Q6State {
     enum Method { RAYCAST, WINDING };
     Method method = RAYCAST;
@@ -72,7 +88,7 @@ struct Q6State {
     int m_methodComboIndex = 0;
     float maxLength;
     Point2f point{};
-    Polygonf poligon{
+    Polygonf polygon{
         {-.5f, -.8f}, 
         {.0f, -.8f}, 
         {.5f, -.8f}, 
@@ -163,6 +179,7 @@ protected:
                 updateQ4();
                 renderQ4();
             } break;
+        case Questao::Q5: {updateQ5(); renderQ5();} break;
         case Questao::Q6: {updateQ6(); renderQ6();} break;
         default: break;
         }
@@ -195,6 +212,7 @@ protected:
         case Questao::Q2: uiQ2(); break;
         case Questao::Q3: uiQ3(); break;
         case Questao::Q4: uiQ4(); break;
+        case Questao::Q5: uiQ5(); break;
         case Questao::Q6: uiQ6(); break;
         default:{
             ImGui::TextDisabled("(não implementado)");
@@ -228,6 +246,28 @@ private:
         m_q4.prodr = geometry::cross(m_q4.vec0, m_q4.vec1);
     }
 
+    void updateQ5() {
+        m_q5.maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
+        if(input().mouseButtons[GLFW_MOUSE_BUTTON_LEFT]) {
+            // Converte coordenadas de tela para coordenadas de mundo
+            float x = ((input().mouseX - PANEL_WIDTH) / (float)m_canvasWidth * 2.0f - 1.0f)/0.7f;
+            float y = ((m_height - input().mouseY) / (float)m_canvasHeight * 2.0f - 1.0f)/0.7f;
+            if(x > -1.f/0.7f && x < 1.f/0.7f && y > -1.f/0.7f && y < 1.f/0.7f)
+            m_q5.point = {x, y};
+        }
+
+        if (m_q5.polygon.size() > 3) {    
+            if(m_q5.method == Q5State::RAYCAST) {
+                m_q5.ray = { m_q5.point, Point2f{1.f/0.7, m_q5.point[1]} };
+                
+                m_q5.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q5.ray, m_q5.polygon, 0.0f);
+                m_q5.isInside = geometry::isPointInsidePolygonRaycast(m_q5.point, m_q5.polygon);
+            } else {
+                m_q5.isInside = geometry::isPointInsidePolygonWinding(m_q5.point, m_q5.polygon);
+            }
+        }
+    }
+
     void updateQ6() {
         m_q6.maxLength = std::min(m_canvasWidth, m_canvasHeight)*0.7f;
         if(input().mouseButtons[GLFW_MOUSE_BUTTON_LEFT]) {
@@ -241,10 +281,10 @@ private:
         if(m_q6.method == Q6State::RAYCAST) {
             m_q6.ray = { m_q6.point, Point2f{1.f/0.7, m_q6.point[1]} };
             
-            m_q6.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.poligon, 0.0f);
-            m_q6.isInside = geometry::isPointInsidePolygonRaycast(m_q6.point, m_q6.poligon);
+            m_q6.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.polygon, 0.0f);
+            m_q6.isInside = geometry::isPointInsidePolygonRaycast(m_q6.point, m_q6.polygon);
         } else {
-            m_q6.isInside = geometry::isPointInsidePolygonWinding(m_q6.point, m_q6.poligon);
+            m_q6.isInside = geometry::isPointInsidePolygonWinding(m_q6.point, m_q6.polygon);
         }
     }
 
@@ -339,17 +379,37 @@ private:
         drawCircle(m_q4.prodr*(float)maxLength, m_q4.prodr >= 0 ? GREEN : RED);
     }
 
+    void renderQ5() {
+
+        for(int i = 0; i < m_q5.polygon.size(); i++) {
+            drawSegment({m_q5.polygon[i]*(float)m_q5.maxLength, m_q5.polygon[(i + 1) % m_q5.polygon.size()]*(float)m_q5.maxLength}, WHITE);
+        }
+
+        if(m_q5.method == Q5State::RAYCAST) drawSegment({m_q5.ray[0]*m_q5.maxLength, m_q5.ray[1]*m_q5.maxLength}, BLUE);
+        drawPoint(m_q5.point*m_q5.maxLength, 5, m_q5.isInside ? ColorRGB({.3, 1., .3}) : ColorRGB({1., .3, .3}));
+
+        for(int i = 0; i < m_q5.polygon.size(); i++) {
+            drawPoint(Point2f({m_q5.polygon[i][0]*(float)m_q5.maxLength, m_q5.polygon[i][1]*(float)m_q5.maxLength}), 5, ColorRGB({1., 1., .3}));
+        }
+
+        if(m_q5.method == Q5State::RAYCAST) {
+            for (const auto& p : m_q5.interseptionResult) {
+                drawPoint(Point2f({p[0]*(float)m_q5.maxLength, p[1]*(float)m_q5.maxLength}), 5, BLUE);
+            }
+        }
+    }
+
     void renderQ6() {
 
-        for(int i = 0; i < m_q6.poligon.size(); i++) {
-            drawSegment({m_q6.poligon[i]*(float)m_q6.maxLength, m_q6.poligon[(i + 1) % m_q6.poligon.size()]*(float)m_q6.maxLength}, WHITE);
+        for(int i = 0; i < m_q6.polygon.size(); i++) {
+            drawSegment({m_q6.polygon[i]*(float)m_q6.maxLength, m_q6.polygon[(i + 1) % m_q6.polygon.size()]*(float)m_q6.maxLength}, WHITE);
         }
 
         if(m_q6.method == Q6State::RAYCAST) drawSegment({m_q6.ray[0]*m_q6.maxLength, m_q6.ray[1]*m_q6.maxLength}, BLUE);
         drawPoint(m_q6.point*m_q6.maxLength, 5, m_q6.isInside ? ColorRGB({.3, 1., .3}) : ColorRGB({1., .3, .3}));
 
-        for(int i = 0; i < m_q6.poligon.size(); i++) {
-            drawPoint(Point2f({m_q6.poligon[i][0]*(float)m_q6.maxLength, m_q6.poligon[i][1]*(float)m_q6.maxLength}), 5, ColorRGB({1., 1., .3}));
+        for(int i = 0; i < m_q6.polygon.size(); i++) {
+            drawPoint(Point2f({m_q6.polygon[i][0]*(float)m_q6.maxLength, m_q6.polygon[i][1]*(float)m_q6.maxLength}), 5, ColorRGB({1., 1., .3}));
         }
 
         if(m_q6.method == Q6State::RAYCAST) {
@@ -429,6 +489,47 @@ private:
         ImGui::Text("Resultado: %.4f", m_q4.prodr);
     }
 
+    void uiQ5() {
+        ImGui::Text("Selecione o método:");
+        if (ImGui::Combo("##method", &m_q5.m_methodComboIndex,
+                     m_q5.METHOD_ITEMS, IM_ARRAYSIZE(m_q5.METHOD_ITEMS))) {
+            m_q5.method = static_cast<Q5State::Method>(m_q5.m_methodComboIndex);
+        }
+
+        ImGui::Text("Ponto:");
+        ImGui::DragFloat2("Vetor A", &m_q5.point[0], 0.01f, -1, 1);
+
+        ImGui::Separator();
+
+        ImGui::DragInt("##randomPoints", &m_q5.randomPoints, 0.01f, 3, 100);
+        if (ImGui::Button("Gerar poligono aleatório")) {
+            m_q5.polygon = generateRandomPolygon<float, 0>(m_q5.randomPoints);
+        }
+
+        ImGui::Separator();
+
+        m_q5.isInside ?  ImGui::TextColored({0.4f, 1, 0.4f, 1}, "Dentro do poliedro") : ImGui::TextColored({1, 0.4f, 0.4f, 1}, "Fora do poliedro");
+
+        if(m_q5.method == Q5State::RAYCAST) {
+            if(m_q5.interseptionResult.empty()) {
+                ImGui::Text("Sem interseção");
+            } else {
+                ImGui::Text("Pontos de colisão:");
+                for (size_t i = 0; i < m_q5.interseptionResult.size(); ++i) {
+                    ImGui::Text("p%d: (%2.2f, %2.2f)", (int)i, m_q5.interseptionResult[i][0], m_q5.interseptionResult[i][1]);
+                }
+            }
+        }
+
+        if(m_q5.polygon.size() > 3){
+            ImGui::Separator();
+            ImGui::Text("Pontos:\n");
+            for (size_t i = 0; i < m_q5.polygon.size(); ++i) {
+                ImGui::Text("p%d: (%2.2f, %2.2f)", (int)i, m_q5.polygon[i][0], m_q5.polygon[i][1]);
+            }
+        }
+    }
+
     void uiQ6() {
         ImGui::Text("Selecione o método:");
         if (ImGui::Combo("##method", &m_q6.m_methodComboIndex,
@@ -442,16 +543,16 @@ private:
         ImGui::Separator();
 
         ImGui::TextWrapped("Pontos:\np1: (%2.2f, %2.2f)\np2: (%2.2f, %2.2f)\np3: (%2.2f, %2.2f)\np4: (%2.2f, %2.2f)\np5: (%2.2f, %2.2f)\np6: (%2.2f, %2.2f)\np7: (%2.2f, %2.2f)\np8: (%2.2f, %2.2f)\np9: (%2.2f, %2.2f)\np10: (%2.2f, %2.2f)",
-            m_q6.poligon[0][0], m_q6.poligon[0][1],
-            m_q6.poligon[1][0], m_q6.poligon[1][1],
-            m_q6.poligon[2][0], m_q6.poligon[2][1],
-            m_q6.poligon[3][0], m_q6.poligon[3][1],
-            m_q6.poligon[4][0], m_q6.poligon[4][1],
-            m_q6.poligon[5][0], m_q6.poligon[5][1],
-            m_q6.poligon[6][0], m_q6.poligon[6][1],
-            m_q6.poligon[7][0], m_q6.poligon[7][1],
-            m_q6.poligon[8][0], m_q6.poligon[8][1],
-            m_q6.poligon[9][0], m_q6.poligon[9][1]
+            m_q6.polygon[0][0], m_q6.polygon[0][1],
+            m_q6.polygon[1][0], m_q6.polygon[1][1],
+            m_q6.polygon[2][0], m_q6.polygon[2][1],
+            m_q6.polygon[3][0], m_q6.polygon[3][1],
+            m_q6.polygon[4][0], m_q6.polygon[4][1],
+            m_q6.polygon[5][0], m_q6.polygon[5][1],
+            m_q6.polygon[6][0], m_q6.polygon[6][1],
+            m_q6.polygon[7][0], m_q6.polygon[7][1],
+            m_q6.polygon[8][0], m_q6.polygon[8][1],
+            m_q6.polygon[9][0], m_q6.polygon[9][1]
         );
         
         ImGui::Separator();

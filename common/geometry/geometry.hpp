@@ -629,7 +629,6 @@ T distancePointSegmentSquared(const Vec<T, N>& P, const Vec<T, N>& A, const Vec<
     return dot(d, d);
 }
 
-
 template <typename T, std::size_t N>
 T distancePointSegment(const Vec<T, N>& P, const Vec<T, N>& A, const Vec<T, N>& B) {
     return std::sqrt(distancePointSegmentSquared(P, A, B));
@@ -637,11 +636,7 @@ T distancePointSegment(const Vec<T, N>& P, const Vec<T, N>& A, const Vec<T, N>& 
 
 template <typename T>
 std::vector<Point2<T>>
-segmentPolygonIntersectionPoints(
-    const Segment<T, 2>& segment,
-    const Polygon<T>& polygon,
-    T eps = default_epsilon<T>()
-) {
+segmentPolygonIntersectionPoints(const Segment<T, 2>& segment, const Polygon<T>& polygon, T eps = default_epsilon<T>()) {
     std::vector<Point2<T>> points;
 
     for (std::size_t i = 0; i < polygon.size(); ++i) {
@@ -707,6 +702,25 @@ bool isPointInsidePolygonWinding(const Point2<T>& p, const Polygon<T>& polygon)
 }
 
 template <typename T, std::size_t N>
+Point<T, N> generateRandomPoint(T intervalA, T intervalB) {
+    T start = intervalA;
+    T end = intervalB;
+    if (intervalA > intervalB) {
+        start = intervalB;
+        end = intervalA;
+    }
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<T> dist(start, end);
+
+    Point<T, N> rp;
+    for(int i = 0; i < N; i++) {
+        rp[i] = (T)dist(gen);
+    }
+}
+
+template <typename T, std::size_t N>
 Polygon<T, N> generateRandomPolygon(size_t numPoints) {
     static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");
     
@@ -737,7 +751,6 @@ Polygon<T, N> generateRandomPolygon(size_t numPoints) {
     return polygon;
 }
 
-// Método 2: Pontos aleatórios em retângulo + convex hull (polígono convexo)
 template <typename T, std::size_t N>
 Polygon<T, N> generateRandomConvexPolygon(size_t numPoints) {
     static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");
@@ -788,7 +801,6 @@ Polygon<T, N> generateRandomConvexPolygon(size_t numPoints) {
     return polygon;
 }
 
-// Método 3: Perturbação de polígono regular (mais controle)
 template <typename T, std::size_t N>
 Polygon<T, N> generateRandomRegularPolygon(size_t numPoints, T maxPerturbation = 0.2) {
     static_assert(N == 0, "Para polígonos estáticos, N deve ser 0 neste exemplo");

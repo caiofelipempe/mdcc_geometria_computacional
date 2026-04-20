@@ -10,6 +10,10 @@ using namespace geometry;
 
 #include <numbers>
 #include <random>
+#include <iostream>
+#include <fstream>
+#include <string>
+
 
 using Point2f = geometry::Point2<float>;
 using Segment2f = geometry::Segment<float, 2>;
@@ -88,7 +92,7 @@ struct Q6State {
     int m_methodComboIndex = 0;
     float maxLength;
     Point2f point{};
-    Polygonf polygon{
+    static const Polygonf polygon{
         {-.5f, -.8f}, 
         {.0f, -.8f}, 
         {.5f, -.8f}, 
@@ -224,6 +228,141 @@ protected:
 
 private:
     // ──────────────── Lógica ────────────────
+    std::string gerarNomeComTimestamp(const std::string& titulo, const std::string& extensao) {
+        std::time_t agora = std::time(nullptr);
+        std::tm tm = *std::localtime(&agora);
+
+        std::ostringstream oss;
+        oss << titulo << "_"
+            << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
+            << extensao;
+
+        return oss.str();
+    }
+
+
+    void generateTests() { 
+        std::string folderName = "testes_resultado_" + gerarTimestamp();
+        fs::create_directory(folderName);
+
+        std::string fileName1 = folderName + "/teste1.txt";
+        std::ofstream arquivo1(fileName1);
+        arquivo1 << "Comprimento do arco medido sobre o quadrado unitário e orientado de dois vetores\n" << std::endl;
+        for(int i = 0, i < 100; i++) {
+            Point2f p1 = generateRandomPoint(-1000.f, 1000.f);
+            Point2f p2 = generateRandomPoint(-1000.f, 1000.f);
+            auto a1 = pseudoangleOctante(p1);
+            auto a2 = pseudoangleOctante(p2);
+
+            arquivo1 << "Vec 1 :(" << p1[0] << ", " << p1[1] << ")" << std::endl;
+            arquivo1 << "Vec 2 :(" << p2[0] << ", " << p2[1] << ")" << std::endl;
+            arquivo1 << "Diferença de ângulos: " << a2 << " - " << a1 << " = " << a2 - a1 << std::endl;
+        }
+        arquivo1.close();
+
+        std::string fileName2 = folderName + "/teste2.txt";
+        std::ofstream arquivo2(fileName2);
+        arquivo2 << "Comparação de algoritmos de psudoângulo\n" << std::endl;
+        for(int i = 0, i < 100; i++) {
+            Point2f p = generateRandomPoint(-1000.f, 1000.f);
+            auto a8 = pseudoangleOctante(p);
+            auto a4 = pseudoangleQuadrant(p);
+
+            arquivo2 << "Vec :(" << p[0] << ", " << p[1] << ")" << std::endl;
+            arquivo2 << "Octante: " << a8 << std::endl;
+            arquivo2 << "Quadrante: " << a4 << std::endl;
+        }
+        arquivo2.close();
+        
+        std::string fileName3 = folderName + "/teste3.txt";
+        std::ofstream arquivo3(fileName3);
+        arquivo3 << "Operações de adição, subtração, produto escalar e produto vetorial\n" << std::endl;
+        for(int i = 0, i < 100; i++) {
+            Point2f p1 = generateRandomPoint(-1000.f, 1000.f);
+            Point2f p2 = generateRandomPoint(-1000.f, 1000.f);
+            auto add = p2 = p1;
+            auto sub = p2 - p1;
+            auto dot = dot(p1, p2);
+            auto cross = cross(p1, p2);
+
+            arquivo3 << "Vec 1 :(" << p1[0] << ", " << p1[1] << ")" << std::endl;
+            arquivo3 << "Vec 2 :(" << p2[0] << ", " << p2[1] << ")" << std::endl;
+            arquivo3 << "Soma: (" << add[0] << ", " << add[1] << ")" << std::endl;
+            arquivo3 << "Subtração: (" << sub[0] << ", " << sub[1] << ")" << std::endl;
+            arquivo3 << "Produto escalar: " << dot << std::endl;
+            arquivo3 << "Produto vetorial: (" << cross[0] << ", " << cross[1] << ")" << std::endl;
+        }
+        arquivo3.close();
+        
+        std::string fileName4 = folderName + "/teste4.txt";
+        std::ofstream arquivo4(fileName4);
+        arquivo4 << "Interseção de segmentos e área orientada\n" << std::endl;
+        for(int i = 0, i < 100; i++) {
+            Point2f p11 = generateRandomPoint(-1000.f, 1000.f);
+            Point2f p12 = generateRandomPoint(-1000.f, 1000.f);
+            Point2f p21 = generateRandomPoint(-1000.f, 1000.f);
+            Point2f p22 = generateRandomPoint(-1000.f, 1000.f);
+
+            T o1 = orientedArea2(Triangle{p11, p12, p21});
+            T o2 = orientedArea2(Triangle{p11, p12, p22});
+            T o3 = orientedArea2(Triangle{p21, p22, p11});
+            T o4 = orientedArea2(Triangle{p21, p22, p12});
+
+            auto interseptionResult = interseptionResult(Segment2f{p11, p22}, Segment2f{p21, p22});
+
+            arquivo4 << "Seg 1 :{(" << p11[0] << ", " << p11[1] << "), (" << p12[0] << ", " << p12[0] << ")}" << std::endl;
+            arquivo4 << "Seg 2 :{(" << p21[0] << ", " << p21[1] << "), (" << p22[0] << ", " << p22[0] << ")}" << std::endl;
+            arquivo4 << "Área orientada 1 : " << o1 << std::endl;
+            arquivo4 << "Área orientada 2 : " << o2 << std::endl;
+            arquivo4 << "Área orientada 3 : " << o3 << std::endl;
+            arquivo4 << "Área orientada 4 : " << o4 << std::endl;
+            arquivo4 << "Tem interseção : " << interseptionResult ? "Simm" : "Não" << std::endl;
+        }
+        arquivo4.close();
+
+        std::string fileName5 = folderName + "/teste5.txt";
+        std::ofstream arquivo5(fileName5);
+        arquivo5 << "Checagem de ponto dentro de poligono randômico\n" << std::endl;
+        Poligonf Polygon<float, 10> polygon = generateRandomPolygon<float, 10>(10);
+        arquivo5 << "Vértices do Polígono: \n";
+        for(int i = 0; i < poly.size(); i++) {
+            arquivo5 << "(" << poly[i] << ", " << poly[i] << "); ";
+        }
+        arquivo5 << "\n";
+        for(int i = 0, i < 100; i++) {
+            Point2f p = generateRandomPoint(-1000.f, 1000.f);
+            auto isInsideRaycas = isPointInsidePolygonRaycast(p, poly);
+            auto isInsideWinding = isPointInsidePolygonWinding(p, poly);
+
+            arquivo5 << "Ponto :(" << p[0] << ", " << p[1] << ")" << std::endl;
+            arquivo5 << "Método do tiro: " << isInsideRaycas ? "Dentro" : "Fora" << std::endl;
+            arquivo5 << "Método Winding: " << isInsideWinding ? "Dentro" : "Fora" << std::endl;
+        }
+        arquivo5.close();
+
+        std::string fileName6 = folderName + "/teste6.txt";
+        std::ofstream arquivo4(fileName6);
+        arquivo6 << "Checagem de ponto dentro de poligono proposto pela questão 6\n" << std::endl;
+        auto polygon = m_q6.polygon;
+        arquivo6 << "Vértices do Polígono: \n";
+        for(int i = 0; i < poly.size(); i++) {
+            arquivo6 << "(" << poly[i] << ", " << poly[i] << "); ";
+        }
+        arquivo6 << "\n";
+        for(int i = 0, i < 100; i++) {
+            Point2f p = generateRandomPoint(-1000.f, 1000.f);
+            auto isInsideRaycas = isPointInsidePolygonRaycast(p, poly);
+            auto isInsideWinding = isPointInsidePolygonWinding(p, poly);
+
+            arquivo6 << "Ponto :(" << p[0] << ", " << p[1] << ")" << std::endl;
+            arquivo6 << "Método do tiro: " << isInsideRaycas ? "Dentro" : "Fora" << std::endl;
+            arquivo6 << "Método Winding: " << isInsideWinding ? "Dentro" : "Fora" << std::endl;
+        }
+        arquivo6.close();
+
+        std::cout << "Testes executados na pasta: " << folderName << std::endl;
+    }
+
     void updateQ3() {
         switch (m_q3.selectedOp) {
         case Q3State::SOMA:

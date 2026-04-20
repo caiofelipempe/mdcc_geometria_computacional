@@ -718,6 +718,8 @@ Point<T, N> generateRandomPoint(T intervalA, T intervalB) {
     for(int i = 0; i < N; i++) {
         rp[i] = (T)dist(gen);
     }
+
+    return rp;
 }
 
 template <typename T, std::size_t N>

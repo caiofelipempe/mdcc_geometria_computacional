@@ -9,7 +9,7 @@
 
 #include "error.hpp"
 #include "result.hpp"
-#include "vec_error.hpp"
+#include "error.hpp"
 
 template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;
@@ -21,6 +21,13 @@ using VectorOrArray =
 template <Arithmetic T, std::size_t N>
 class ArithmeticVector {
 public:
+
+    enum class VecError {
+        SizeMismatch,
+        DivisionByZero,
+        ZeroNorm
+    };
+
     using ErrorType = Error<VecError>;
     using Vec      = ArithmeticVector<T, N>;
 

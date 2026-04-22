@@ -1,6 +1,7 @@
 #pragma once
 
 #include "error.hpp"
+#include "result.hpp"
 
 #include <array>
 #include <vector>
@@ -25,6 +26,11 @@ enum class Orientation {
     Clockwise,
     CounterClockwise
 };
+
+enum class GeometryError {
+    Unknown = 0
+};
+using ErrorType = Error<GeometryError>;
 
 // Vetor e ponto
 template <typename T, std::size_t N>
@@ -254,7 +260,7 @@ T length(const Vec<T, N>& v) {
 
 // Retorna cópia normalizada, ou erro se o vetor for zero.
 template <Arithmetic T, std::size_t N>
-std::expected<Vec<T, N>, Error>
+Result<Vec<T, N>, ErrorType>
 normalized(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -264,7 +270,7 @@ normalized(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
 
 // Normaliza in-place. Retorna erro se o vetor for zero.
 template <Arithmetic T, std::size_t N>
-std::optional<Error>
+Result<void, ErrorType>
 normalize(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -275,7 +281,7 @@ normalize(Vec<T, N>& v, T eps = default_epsilon<T>()) {
 
 // Normaliza apenas se |v| > 1; vetor zero continua sendo erro.
 template <Arithmetic T, std::size_t N>
-std::expected<Vec<T, N>, Error>
+Result<Vec<T, N>, ErrorType>
 normalizedIfGreaterThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -286,7 +292,7 @@ normalizedIfGreaterThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
 }
 
 template <Arithmetic T, std::size_t N>
-std::optional<Error>
+Result<void, ErrorType>
 normalizeIfGreaterThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -299,7 +305,7 @@ normalizeIfGreaterThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
 // Normaliza apenas se |v| < 1 (escala para unitário vetores curtos).
 // Vetor zero continua sendo erro.
 template <Arithmetic T, std::size_t N>
-std::expected<Vec<T, N>, Error>
+Result<Vec<T, N>, ErrorType>
 normalizedIfSmallerThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -310,7 +316,7 @@ normalizedIfSmallerThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
 }
 
 template <Arithmetic T, std::size_t N>
-std::optional<Error>
+Result<void, ErrorType>
 normalizeIfSmallerThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
@@ -364,7 +370,7 @@ constexpr Vec<T, 4> cross(
 }
 
 template <Arithmetic T>
-std::expected<T, Error>
+Result<T, ErrorType>
 pseudoangleOctante(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T x = v[0];
     const T y = v[1];
@@ -398,13 +404,13 @@ pseudoangleOctante(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
 }
 
 template <Arithmetic T>
-std::expected<T, Error>
+Result<T, ErrorType>
 pseudoangleQuadrant(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T x = v[0];
     const T y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return std::unexpected(Error::make("Vector is zero"));
+        return ErrorType::make(GeometryError::Unknown, "Vector is zero");
 
     const T ax = std::abs(x);
     const T ay = std::abs(y);
@@ -440,13 +446,13 @@ bool pseudoangle_less(const Vec<T, 2>& a, const Vec<T, 2>& b) {
 // Retorna o ângulo "signed" de a até b no pseudoespaço: pb - pa.
 // Não normaliza para [0, 8) — o chamador decide a semântica.
 template <Arithmetic T>
-std::expected<T, Error>
+Result<T, ErrorType>
 pseudoangleBetween(const Vec<T, 2>& a, const Vec<T, 2>& b) {
     const auto pa = pseudoangleOctante(a);
     const auto pb = pseudoangleOctante(b);
 
     if (!pa.has_value() || !pb.has_value())
-        return std::unexpected(Error::make("One or both vectors are zero"));
+        return ErrorType::make(GeometryError::Unknown, "One or both vectors are zero");
 
     return pb.value() - pa.value();
 }

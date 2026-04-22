@@ -1,5 +1,6 @@
 add_library(error INTERFACE
     error.hpp
+    result.hpp
 )
 
 target_include_directories(error INTERFACE

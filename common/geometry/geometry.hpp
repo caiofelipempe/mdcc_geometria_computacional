@@ -264,17 +264,17 @@ Result<Vec<T, N>, ErrorType>
 normalized(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return std::unexpected(Error::make("Vector is zero"));
+        return std::unexpected(ErrorType::make(GeometryError::Unknown, "Vector is zero"));
     return v / std::sqrt(ls);
 }
 
 // Normaliza in-place. Retorna erro se o vetor for zero.
 template <Arithmetic T, std::size_t N>
-Result<void, ErrorType>
+std::optional<ErrorType>
 normalize(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return Error::make("Vector is zero");
+        return ErrorType::make(GeometryError::Unknown, "Vector is zero");
     v /= std::sqrt(ls);
     return std::nullopt;
 }
@@ -285,18 +285,18 @@ Result<Vec<T, N>, ErrorType>
 normalizedIfGreaterThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return std::unexpected(Error::make("Vector is zero"));
+        return std::unexpected(ErrorType::make(GeometryError::Unknown, "Vector is zero"));
     if (ls > T(1))
         return v / std::sqrt(ls);
     return v;
 }
 
 template <Arithmetic T, std::size_t N>
-Result<void, ErrorType>
+std::optional<ErrorType>
 normalizeIfGreaterThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return Error::make("Vector is zero");
+        return ErrorType::make(GeometryError::Unknown, "Vector is zero");
     if (ls > T(1))
         v /= std::sqrt(ls);
     return std::nullopt;
@@ -309,18 +309,18 @@ Result<Vec<T, N>, ErrorType>
 normalizedIfSmallerThanOne(const Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return std::unexpected(Error::make("Vector is zero"));
+        return std::unexpected(ErrorType::make(GeometryError::Unknown, "Vector is zero"));
     if (ls < T(1))
         return v / std::sqrt(ls);
     return v;
 }
 
 template <Arithmetic T, std::size_t N>
-Result<void, ErrorType>
+std::optional<ErrorType>
 normalizeIfSmallerThanOne(Vec<T, N>& v, T eps = default_epsilon<T>()) {
     const T ls = length_squared(v);
     if (ls <= eps * eps)
-        return Error::make("Vector is zero");
+        return ErrorType::make(GeometryError::Unknown, "Vector is zero");
     if (ls < T(1))
         v /= std::sqrt(ls);
     return std::nullopt;
@@ -376,7 +376,7 @@ pseudoangleOctante(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return std::unexpected(Error::make("Vector is zero"));
+        return std::unexpected(ErrorType::make(GeometryError::Unknown, "Vector is zero"));
 
     const T ax = std::abs(x);
     const T ay = std::abs(y);
@@ -410,7 +410,7 @@ pseudoangleQuadrant(const Vec<T, 2>& v, T eps = default_epsilon<T>()) {
     const T y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return ErrorType::make(GeometryError::Unknown, "Vector is zero");
+        return std::unexpected(ErrorType::make(GeometryError::Unknown, "Vector is zero"));
 
     const T ax = std::abs(x);
     const T ay = std::abs(y);

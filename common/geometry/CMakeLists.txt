@@ -1,5 +1,5 @@
 add_library(geometry INTERFACE
-    geometry.hpp
+    arithmetic_vector.hpp
 )
 
 target_include_directories(geometry INTERFACE

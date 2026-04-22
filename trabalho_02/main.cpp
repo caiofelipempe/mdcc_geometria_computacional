@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 #include "input.h"
-#include "geometry.hpp"
+#include "arithmetic_vector.hpp"
+#include "utils.hpp"
 
 using namespace geometry;
 
@@ -20,13 +21,6 @@ using namespace geometry;
 #include <filesystem>
 
 namespace fs = std::filesystem;
-
-
-using Point2f = geometry::Point2<float>;
-using Segment2f = geometry::Segment<float, 2>;
-using Polygonf = geometry::Polygon<float>;
-using Triangle2f = geometry::Triangle<float, 2>;
-using ColorRGB = Vec<float, 3>;
 
 // ─────────────────────────────────────────────
 //  Constantes globais
@@ -85,7 +79,7 @@ struct Q5State {
     Point2f point{};
     bool isInside;
     int randomPoints = 15;
-    Polygon<float, 0> polygon = generateRandomPolygon<float, 0>(randomPoints);
+    Polygon2f polygon = utils::generateRandomPolygon(randomPoints);
 
     Segment2f ray;
     std::vector<Point2f> interseptionResult;
@@ -100,7 +94,7 @@ struct Q6State {
     int m_methodComboIndex = 0;
     float maxLength;
     Point2f point{};
-    const Polygonf polygon {
+    const Polygon2f polygon {
         {-.5f, -.8f}, 
         {.0f, -.8f}, 
         {.5f, -.8f}, 
@@ -267,10 +261,10 @@ private:
         std::ofstream arquivo1(fileName1);
         arquivo1 << "Comprimento do arco medido sobre o quadrado unitário e orientado de dois vetores\n" << std::endl;
         for(int i = 0; i < 100; i++) {
-            Point2f p1 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            Point2f p2 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            auto a1 = pseudoangleOctante(p1);
-            auto a2 = pseudoangleOctante(p2);
+            Point2f p1 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p2 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            auto a1 = utils::pseudoangleOctante(p1);
+            auto a2 = utils::pseudoangleOctante(p2);
 
             arquivo1 << "Vec 1 :(" << p1[0] << ", " << p1[1] << ")" << std::endl;
             arquivo1 << "Vec 2 :(" << p2[0] << ", " << p2[1] << ")" << std::endl;
@@ -285,9 +279,9 @@ private:
         std::ofstream arquivo2(fileName2);
         arquivo2 << "Comparação de algoritmos de psudoângulo\n" << std::endl;
         for(int i = 0; i < 100; i++) {
-            Point2f p = generateRandomPoint<float, 2>(-1.f, 1.f);
-            auto a8 = pseudoangleOctante(p);
-            auto a4 = pseudoangleQuadrant(p);
+            Point2f p = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            auto a8 = utils::pseudoangleOctante(p);
+            auto a4 = utils::pseudoangleQuadrant(p);
 
             arquivo2 << "Vec :(" << p[0] << ", " << p[1] << ")" << std::endl;
             a8.has_value() ?  arquivo2 << "Octante: " << a8.value() << std::endl : arquivo2 << "Erro no cálculo do octante" << std::endl;
@@ -299,12 +293,12 @@ private:
         std::ofstream arquivo3(fileName3);
         arquivo3 << "Operações de adição, subtração, produto escalar e produto vetorial\n" << std::endl;
         for(int i = 0; i < 100; i++) {
-            Point2f p1 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            Point2f p2 = generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p1 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p2 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
             auto add = p2 = p1;
             auto sub = p2 - p1;
-            auto dot = geometry::dot(p1, p2);
-            auto cross = geometry::cross(p1, p2);
+            auto dot = p1.dot(p2);
+            auto cross = p1.cross(p2);
 
             arquivo3 << "Vec 1 :(" << p1[0] << ", " << p1[1] << ")" << std::endl;
             arquivo3 << "Vec 2 :(" << p2[0] << ", " << p2[1] << ")" << std::endl;
@@ -319,17 +313,17 @@ private:
         std::ofstream arquivo4(fileName4);
         arquivo4 << "Interseção de segmentos e área orientada\n" << std::endl;
         for(int i = 0; i < 100; i++) {
-            Point2f p11 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            Point2f p12 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            Point2f p21 = generateRandomPoint<float, 2>(-1.f, 1.f);
-            Point2f p22 = generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p11 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p12 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p21 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            Point2f p22 = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
 
-            float o1 = orientedArea2(Triangle2f{p11, p12, p21});
-            float o2 = orientedArea2(Triangle2f{p11, p12, p22});
-            float o3 = orientedArea2(Triangle2f{p21, p22, p11});
-            float o4 = orientedArea2(Triangle2f{p21, p22, p12});
+            float o1 = utils::orientedArea2(Triangle2f{p11, p12, p21});
+            float o2 = utils::orientedArea2(Triangle2f{p11, p12, p22});
+            float o3 = utils::orientedArea2(Triangle2f{p21, p22, p11});
+            float o4 = utils::orientedArea2(Triangle2f{p21, p22, p12});
 
-            auto interseptionResult = segmentIntersectionExists(Segment2f{p11, p22}, Segment2f{p21, p22});
+            auto interseptionResult = utils::segmentIntersectionExists(Segment2f{p11, p22}, Segment2f{p21, p22});
 
             arquivo4 << "Seg 1 :{(" << p11[0] << ", " << p11[1] << "), (" << p12[0] << ", " << p12[0] << ")}" << std::endl;
             arquivo4 << "Seg 2 :{(" << p21[0] << ", " << p21[1] << "), (" << p22[0] << ", " << p22[0] << ")}" << std::endl;
@@ -344,16 +338,16 @@ private:
         std::string fileName5 = folderName + "/teste5.txt";
         std::ofstream arquivo5(fileName5);
         arquivo5 << "Checagem de ponto dentro de poligono randômico\n" << std::endl;
-        Polygon<float, 0> poly = generateRandomPolygon<float, 0>(10);
+        auto poly = utils::generateRandomPolygon(10);
         arquivo5 << "Vértices do Polígono: \n";
         for(int i = 0; i < poly.size(); i++) {
             arquivo5 << "(" << poly[i][0] << ", " << poly[i][1] << "); ";
         }
         arquivo5 << "\n";
         for(int i = 0; i < 100; i++) {
-            Point2f p = generateRandomPoint<float, 2>(-1.f, 1.f);
-            auto isInsideRaycas = isPointInsidePolygonRaycast(p, poly);
-            auto isInsideWinding = isPointInsidePolygonWinding(p, poly);
+            Point2f p = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            auto isInsideRaycas = utils::isPointInsidePolygonRaycast(p, poly);
+            auto isInsideWinding = utils::isPointInsidePolygonWinding(p, poly);
 
             arquivo5 << "Ponto :(" << p[0] << ", " << p[1] << ")" << std::endl;
             arquivo5 << "Método do tiro: " << (isInsideRaycas ? "Dentro" : "Fora") << std::endl;
@@ -371,9 +365,9 @@ private:
         }
         arquivo6 << "\n";
         for(int i = 0; i < 100; i++) {
-            Point2f p = generateRandomPoint<float, 2>(-1.f, 1.f);
-            auto isInsideRaycas = isPointInsidePolygonRaycast(p, poly);
-            auto isInsideWinding = isPointInsidePolygonWinding(p, poly);
+            Point2f p = utils::generateRandomPoint<float, 2>(-1.f, 1.f);
+            auto isInsideRaycas = utils::isPointInsidePolygonRaycast(p, poly);
+            auto isInsideWinding = utils::isPointInsidePolygonWinding(p, poly);
 
             arquivo6 << "Ponto :(" << p[0] << ", " << p[1] << ")" << std::endl;
             arquivo6 << "Método do tiro: " << (isInsideRaycas ? "Dentro" : "Fora") << std::endl;
@@ -393,17 +387,17 @@ private:
             m_q3.vecr = m_q3.vec0 - m_q3.vec1;
             break;
         case Q3State::CROSS:
-            m_q3.prodr = geometry::cross(m_q3.vec0, m_q3.vec1);
+            m_q3.prodr = m_q3.vec0.cross(m_q3.vec1);
             break;
         case Q3State::DOT:
-            m_q3.prodr = geometry::dot(m_q3.vec0, m_q3.vec1);
+            m_q3.prodr = m_q3.vec0.dot(m_q3.vec1);
             break;
         default: break;
         }
     }
 
     void updateQ4() {
-        m_q4.prodr = geometry::cross(m_q4.vec0, m_q4.vec1);
+        m_q4.prodr = m_q4.vec0.cross(m_q4.vec1);
     }
 
     void updateQ5() {
@@ -420,10 +414,10 @@ private:
             if(m_q5.method == Q5State::RAYCAST) {
                 m_q5.ray = { m_q5.point, Point2f{1.f/0.7, m_q5.point[1]} };
                 
-                m_q5.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q5.ray, m_q5.polygon, 0.0f);
-                m_q5.isInside = geometry::isPointInsidePolygonRaycast(m_q5.point, m_q5.polygon);
+                m_q5.interseptionResult = utils::segmentPolygonIntersectionPoints(m_q5.ray, m_q5.polygon);
+                m_q5.isInside = utils::isPointInsidePolygonRaycast(m_q5.point, m_q5.polygon);
             } else {
-                m_q5.isInside = geometry::isPointInsidePolygonWinding(m_q5.point, m_q5.polygon);
+                m_q5.isInside =utils::isPointInsidePolygonWinding(m_q5.point, m_q5.polygon);
             }
         }
     }
@@ -441,10 +435,10 @@ private:
         if(m_q6.method == Q6State::RAYCAST) {
             m_q6.ray = { m_q6.point, Point2f{1.f/0.7, m_q6.point[1]} };
             
-            m_q6.interseptionResult = geometry::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.polygon, 0.0f);
-            m_q6.isInside = geometry::isPointInsidePolygonRaycast(m_q6.point, m_q6.polygon);
+            m_q6.interseptionResult = utils::segmentPolygonIntersectionPoints(m_q6.ray, m_q6.polygon);
+            m_q6.isInside = utils::isPointInsidePolygonRaycast(m_q6.point, m_q6.polygon);
         } else {
-            m_q6.isInside = geometry::isPointInsidePolygonWinding(m_q6.point, m_q6.polygon);
+            m_q6.isInside = utils::isPointInsidePolygonWinding(m_q6.point, m_q6.polygon);
         }
     }
 
@@ -581,8 +575,8 @@ private:
 
     // ──────────────── UI ────────────────
     void uiQ1() {
-        auto pa0 = geometry::pseudoangleOctante(m_q1.vec0);
-        auto pa1 = geometry::pseudoangleOctante(m_q1.vec1);
+        auto pa0 = utils::pseudoangleOctante(m_q1.vec0);
+        auto pa1 = utils::pseudoangleOctante(m_q1.vec1);
 
         ImGui::Text("Vetor 1:");
         ImGui::DragFloat2("##v0", &m_q1.vec0[0], 0.01f, -1, 1);
@@ -606,8 +600,8 @@ private:
         ImGui::DragFloat2("##v", &m_q2.vec[0], 0.01f, -1, 1);
         warnIfZero(m_q2.vec);
 
-        auto pa = geometry::pseudoangleOctante(m_q2.vec);
-        auto pb = geometry::pseudoangleQuadrant(m_q2.vec);
+        auto pa = utils::pseudoangleOctante(m_q2.vec);
+        auto pb = utils::pseudoangleQuadrant(m_q2.vec);
 
         if (pa) {
             ImGui::Text("Octante: %.4f", pa.value());
@@ -663,7 +657,7 @@ private:
 
         ImGui::DragInt("##randomPoints", &m_q5.randomPoints, 0.01f, 3, 100);
         if (ImGui::Button("Gerar poligono aleatório")) {
-            m_q5.polygon = generateRandomPolygon<float, 0>(m_q5.randomPoints);
+            m_q5.polygon = utils::generateRandomPolygon(m_q5.randomPoints);
         }
 
         ImGui::Separator();

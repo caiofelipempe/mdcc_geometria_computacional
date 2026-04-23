@@ -26,8 +26,11 @@ find_package(bgfx CONFIG REQUIRED)
 # Trabalhos
 # -----------------------------
 option(BUILD_TRABALHO_01 "Compilar Trabalho 01" OFF)
-option(BUILD_TRABALHO_02 "Compilar Trabalho 02" ON)
-option(BUILD_TRABALHO_03 "Compilar Trabalho 03" OFF)
+
+# -----------------------------
+# Tarefas
+# -----------------------------
+option(BUILD_TAREFA_02 "Compilar Trabalho 02" ON)
 
 add_subdirectory(common)
 
@@ -35,10 +38,6 @@ if(BUILD_TRABALHO_01)
     add_subdirectory(trabalho_01)
 endif()
 
-if(BUILD_TRABALHO_02)
-    add_subdirectory(trabalho_02)
-endif()
-
-if(BUILD_TRABALHO_03)
-    add_subdirectory(trabalho_03)
+if(BUILD_TAREFA_02)
+    add_subdirectory(tarefa_02)
 endif()

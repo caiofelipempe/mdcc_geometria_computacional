@@ -1,9 +1,9 @@
-add_executable(trabalho_02
+add_executable(tarefa_02
     main.cpp
     utils.hpp
 )
 
-target_link_libraries(trabalho_02
+target_link_libraries(tarefa_02
     PRIVATE
         renderer
         geometry

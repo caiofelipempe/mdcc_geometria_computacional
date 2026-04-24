@@ -9,14 +9,12 @@ using ColorRGB = std::array<float, 3>;
 
 namespace utils {
 
-enum class ErrCode {
+enum class Error {
     Unknown,
     SizeMismatch,
     DivisionByZero,
     ZeroNorm
 };
-
-using Err = Error<ErrCode>;
 
 bool isZero(float v) {
     auto eps = Point2f::defaultEpsilon();
@@ -72,7 +70,7 @@ Point2f generateRandomPoint(T intervalA, T intervalB) {
     return rp;
 }
 
-Result<float, Err, true>
+Result<float, Error, true>
 pseudoangleOctante(const Point2f& v) {
     auto eps = Point2f::defaultEpsilon();
 
@@ -80,7 +78,7 @@ pseudoangleOctante(const Point2f& v) {
     const float y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return std::unexpected(Err::make(ErrCode::SizeMismatch));
+        return errResult(Error::SizeMismatch);
 
     const float ax = std::abs(x);
     const float ay = std::abs(y);
@@ -107,7 +105,7 @@ pseudoangleOctante(const Point2f& v) {
     }
 }
 
-Result<float, Err>
+Result<float, Error>
 pseudoangleQuadrant(const Point2f& v) {
     float eps = Point2f::defaultEpsilon();
 
@@ -115,7 +113,7 @@ pseudoangleQuadrant(const Point2f& v) {
     const float y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return std::unexpected(Err::make(ErrCode::Unknown, "Vector is zero"));
+        return errResult(Error::Unknown);
 
     const float ax = std::abs(x);
     const float ay = std::abs(y);

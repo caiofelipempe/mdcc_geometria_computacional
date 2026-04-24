@@ -7,7 +7,7 @@ target_link_libraries(tarefa_02
     PRIVATE
         renderer
         geometry
-        error
+        result
         
         OpenGL::GL
         glfw

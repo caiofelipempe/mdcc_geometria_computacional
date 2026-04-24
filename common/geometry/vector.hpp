@@ -8,9 +8,7 @@
 #include <stdexcept>
 #include <random>
 
-#include "error.hpp"
 #include "result.hpp"
-#include "error.hpp"
 
 namespace geometry {
 
@@ -25,13 +23,11 @@ template <Arithmetic T, std::size_t N>
 class Vector {
 public:
 
-    enum class ErrCode {
+    enum class Error {
         SizeMismatch,
         DivisionByZero,
         ZeroNorm
     };
-
-    using Err = Error<ErrCode>;
     using Vec      = Vector<T, N>;
 
     VectorOrArray<T, N> data;
@@ -102,12 +98,12 @@ public:
     /* ================= VETOR × VETOR ================= */
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     add(const Vec& rhs) const {
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return std::unexpected(Err::make(ErrCode::SizeMismatch));
+                    return errResult(Error::SizeMismatch);
                 else
                     throw std::runtime_error("Size mismatch");
             }
@@ -121,13 +117,13 @@ public:
     }
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     sub(const Vec& rhs) const {
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return std::unexpected(
-                        Err::make(ErrCode::SizeMismatch)
+                    return errResult(
+                        Error::SizeMismatch
                     );
                 else
                     throw std::runtime_error("Size mismatch");
@@ -142,13 +138,13 @@ public:
     }
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     mul(const Vec& rhs) const {
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return std::unexpected(
-                        Err::make(ErrCode::SizeMismatch)
+                    return errResult(
+                        Error::SizeMismatch
                     );
                 else
                     throw std::runtime_error("Size mismatch");
@@ -163,13 +159,13 @@ public:
     }
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     div(const Vec& rhs) const {
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return std::unexpected(
-                        Err::make(ErrCode::SizeMismatch)
+                    return errResult(
+                        Error::SizeMismatch
                     );
                 else
                     throw std::runtime_error("Size mismatch");
@@ -179,8 +175,8 @@ public:
         for (std::size_t i = 0; i < size(); ++i) {
             if (rhs[i] == T{}) {
                 if constexpr (Safe)
-                    return std::unexpected(
-                        Err::make(ErrCode::DivisionByZero)
+                    return errResult(
+                        Error::DivisionByZero
                     );
                 else
                     throw std::runtime_error("Division by zero");
@@ -197,7 +193,7 @@ public:
     /* ================= ESCALAR ================= */
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     mul(T scalar) const {
         Vec out = make_result(*this);
         for (std::size_t i = 0; i < size(); ++i)
@@ -206,12 +202,12 @@ public:
     }
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     div(T scalar) const {
         if (scalar == T{}) {
             if constexpr (Safe)
-                return std::unexpected(
-                    Err::make(ErrCode::DivisionByZero)
+                return errResult(
+                    Error::DivisionByZero
                 );
             else
                 throw std::runtime_error("Division by zero");
@@ -242,13 +238,13 @@ public:
     }
 
     template <bool Safe = true>
-    Result<T, Err, Safe>
+    Result<T, Error, Safe>
     norm() const {
         T sn = sqr_norm();
         if (sn == T{}) {
             if constexpr (Safe)
-                return std::unexpected(
-                    Err::make(ErrCode::ZeroNorm)
+                return errResult(
+                    Error::ZeroNorm
                 );
             else
                 throw std::runtime_error("Zero norm");
@@ -257,13 +253,13 @@ public:
     }
 
     template <bool Safe = true>
-    Result<Vec, Err, Safe>
+    Result<Vec, Error, Safe>
     normalized(T eps = default_epsilon()) const {
         T sn = sqr_norm();
         if (sn < eps * eps) {
             if constexpr (Safe)
-                return std::unexpected(
-                    Err::make(ErrCode::ZeroNorm)
+                return errResult(
+                    Error::ZeroNorm
                 );
             else
                 throw std::runtime_error("Zero norm");

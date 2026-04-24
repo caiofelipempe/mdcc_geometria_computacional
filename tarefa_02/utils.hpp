@@ -78,7 +78,7 @@ pseudoangleOctante(const Point2f& v) {
     const float y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return errResult(Error::SizeMismatch);
+        return result::err(Error::SizeMismatch);
 
     const float ax = std::abs(x);
     const float ay = std::abs(y);
@@ -113,7 +113,7 @@ pseudoangleQuadrant(const Point2f& v) {
     const float y = v[1];
 
     if (std::abs(x) <= eps && std::abs(y) <= eps)
-        return errResult(Error::Unknown);
+        return result::err(Error::Unknown);
 
     const float ax = std::abs(x);
     const float ay = std::abs(y);

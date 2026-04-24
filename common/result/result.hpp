@@ -17,13 +17,17 @@ using Result =
         T
     >;
 
+namespace result {
+
 template <typename E>
-constexpr std::unexpected<E> errResult(E error)
+constexpr std::unexpected<E> err(E error)
 {
     return std::unexpected<E>{ std::move(error) };
 }
 
-constexpr std::nullopt_t noneResult()
+constexpr std::nullopt_t none()
 {
     return std::nullopt;
+}
+
 }

@@ -103,7 +103,7 @@ public:
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return errResult(Error::SizeMismatch);
+                    return result::err(Error::SizeMismatch);
                 else
                     throw std::runtime_error("Size mismatch");
             }
@@ -122,7 +122,7 @@ public:
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return errResult(
+                    return result::err(
                         Error::SizeMismatch
                     );
                 else
@@ -143,7 +143,7 @@ public:
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return errResult(
+                    return result::err(
                         Error::SizeMismatch
                     );
                 else
@@ -164,7 +164,7 @@ public:
         if constexpr (N == 0) {
             if (size() != rhs.size()) {
                 if constexpr (Safe)
-                    return errResult(
+                    return result::err(
                         Error::SizeMismatch
                     );
                 else
@@ -175,7 +175,7 @@ public:
         for (std::size_t i = 0; i < size(); ++i) {
             if (rhs[i] == T{}) {
                 if constexpr (Safe)
-                    return errResult(
+                    return result::err(
                         Error::DivisionByZero
                     );
                 else
@@ -206,7 +206,7 @@ public:
     div(T scalar) const {
         if (scalar == T{}) {
             if constexpr (Safe)
-                return errResult(
+                return result::err(
                     Error::DivisionByZero
                 );
             else
@@ -243,7 +243,7 @@ public:
         T sn = sqr_norm();
         if (sn == T{}) {
             if constexpr (Safe)
-                return errResult(
+                return result::err(
                     Error::ZeroNorm
                 );
             else
@@ -258,7 +258,7 @@ public:
         T sn = sqr_norm();
         if (sn < eps * eps) {
             if constexpr (Safe)
-                return errResult(
+                return result::err(
                     Error::ZeroNorm
                 );
             else

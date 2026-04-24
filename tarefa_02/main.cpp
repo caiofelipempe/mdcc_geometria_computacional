@@ -1,6 +1,6 @@
 #include "renderer.hpp"
 #include "input.h"
-#include "arithmetic_vector.hpp"
+#include "vector.hpp"
 #include "utils.hpp"
 
 using namespace geometry;

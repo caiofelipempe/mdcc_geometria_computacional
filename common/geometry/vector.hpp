@@ -22,7 +22,7 @@ using VectorOrArray =
     std::conditional_t<N == 0, std::vector<T>, std::array<T, N>>;
 
 template <Arithmetic T, std::size_t N>
-class ArithmeticVector {
+class Vector {
 public:
 
     enum class ErrCode {
@@ -32,15 +32,15 @@ public:
     };
 
     using Err = Error<ErrCode>;
-    using Vec      = ArithmeticVector<T, N>;
+    using Vec      = Vector<T, N>;
 
     VectorOrArray<T, N> data;
 
     /* ================= CONSTRUTORES ================= */
 
-    ArithmeticVector() = default;
+    Vector() = default;
 
-    ArithmeticVector(std::initializer_list<T> init) {
+    Vector(std::initializer_list<T> init) {
         if constexpr (N == 0) {
             data.assign(init.begin(), init.end());
         } else {
@@ -50,7 +50,7 @@ public:
         }
     }
 
-    explicit ArithmeticVector(std::size_t size) {
+    explicit Vector(std::size_t size) {
         static_assert(N == 0);
         data.resize(size);
     }
@@ -346,7 +346,7 @@ public:
 }
 
 template <geometry::Arithmetic T, std::size_t N>
-geometry::ArithmeticVector<T, N>
-operator*(T s, const geometry::ArithmeticVector<T, N>& v) {
+geometry::Vector<T, N>
+operator*(T s, const geometry::Vector<T, N>& v) {
     return v * s;
 }

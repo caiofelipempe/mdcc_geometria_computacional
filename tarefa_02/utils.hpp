@@ -1,7 +1,7 @@
 #pragma once
-#include "arithmetic_vector.hpp"
+#include "vector.hpp"
 
-using Point2f = geometry::ArithmeticVector<float, 2>;
+using Point2f = geometry::Vector<float, 2>;
 using Segment2f = std::array<Point2f, 2>;
 using Polygon2f = std::vector<Point2f>;
 using Triangle2f =std::array<Point2f, 3>;

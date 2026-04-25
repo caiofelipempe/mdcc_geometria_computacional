@@ -1,4 +1,7 @@
 #pragma once
+
+#include <random>
+
 #include "vector.hpp"
 
 using Point2f = geometry::Vector<float, 2>;
@@ -16,8 +19,16 @@ enum class Error {
     ZeroNorm
 };
 
+template <typename T>
+static constexpr T defaultEpsilon() noexcept {
+    if constexpr (std::is_floating_point_v<T>)
+        return static_cast<T>(1e-8);
+    else
+        return T{};
+}
+
 bool isZero(float v) {
-    auto eps = Point2f::defaultEpsilon();
+    auto eps = defaultEpsilon<float>();
     return std::abs(v) <= eps;
 }
 
@@ -72,7 +83,7 @@ Point2f generateRandomPoint(T intervalA, T intervalB) {
 
 Result<float, Error, true>
 pseudoangleOctante(const Point2f& v) {
-    auto eps = Point2f::defaultEpsilon();
+    auto eps = defaultEpsilon<float>();
 
     const float x = v[0];
     const float y = v[1];
@@ -107,7 +118,7 @@ pseudoangleOctante(const Point2f& v) {
 
 Result<float, Error>
 pseudoangleQuadrant(const Point2f& v) {
-    float eps = Point2f::defaultEpsilon();
+    float eps =defaultEpsilon<float>();
 
     const float x = v[0];
     const float y = v[1];
@@ -139,7 +150,7 @@ float orientedArea2(const Triangle2f& tri) {
 }
 
 bool onSegment(const Segment2f& s, const Point2f& p) {
-    float eps = Point2f::defaultEpsilon();
+    float eps = defaultEpsilon<float>();
 
     const auto& a = s[0];
     const auto& b = s[1];
@@ -152,7 +163,7 @@ bool onSegment(const Segment2f& s, const Point2f& p) {
 }
 
 bool segmentIntersectionExists(const Segment2f& s1, const Segment2f& s2) {
-    float eps = Point2f::defaultEpsilon();
+    float eps = defaultEpsilon<float>();
 
     float o1 = orientedArea2(Triangle2f{s1[0], s1[1], s2[0]});
     float o2 = orientedArea2(Triangle2f{s1[0], s1[1], s2[1]});
@@ -174,7 +185,7 @@ bool segmentIntersectionExists(const Segment2f& s1, const Segment2f& s2) {
 }
 
 bool isPointInsidePolygonRaycast(const Point2f& point, const Polygon2f& polygon) {
-    float eps = Point2f::defaultEpsilon();
+    float eps = defaultEpsilon<float>();
 
     int n = polygon.size();
     bool isInside = false;
@@ -219,7 +230,7 @@ bool isPointInsidePolygonWinding(const Point2f& p, const Polygon2f& polygon)
 }
 
 std::optional<Point2f> segmentIntersectionPoint(const Segment2f& s1, const Segment2f& s2) {
-    float eps = Point2f::defaultEpsilon();
+    float eps = defaultEpsilon<float>();
 
     const auto& p = s1[0];
     const auto& p2 = s1[1];
@@ -247,7 +258,7 @@ std::optional<Point2f> segmentIntersectionPoint(const Segment2f& s1, const Segme
 }
 
 std::vector<Point2f> segmentPolygonIntersectionPoints(const Segment2f& segment, const Polygon2f& polygon) {
-    float eps = Point2f::defaultEpsilon();
+    float eps = defaultEpsilon<float>();
 
     std::vector<Point2f> points;
 

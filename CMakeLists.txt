@@ -23,21 +23,21 @@ find_package(imgui CONFIG REQUIRED)
 find_package(bgfx CONFIG REQUIRED)
 
 # -----------------------------
-# Trabalhos
-# -----------------------------
-option(BUILD_TRABALHO_01 "Compilar Trabalho 01" OFF)
-
-# -----------------------------
 # Tarefas
 # -----------------------------
-option(BUILD_TAREFA_02 "Compilar Trabalho 02" ON)
+option(BUILD_TAREFA_02 "Compilar Trabalho 02" OFF)
+
+# -----------------------------
+# Trabalhos
+# -----------------------------
+option(BUILD_TRABALHO_01 "Compilar Trabalho 01" ON)
 
 add_subdirectory(common)
 
-if(BUILD_TRABALHO_01)
-    add_subdirectory(trabalho_01)
-endif()
-
 if(BUILD_TAREFA_02)
     add_subdirectory(tarefa_02)
+endif()
+
+if(BUILD_TRABALHO_01)
+    add_subdirectory(trabalho_01)
 endif()

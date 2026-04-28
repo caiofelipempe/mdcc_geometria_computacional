@@ -4,7 +4,10 @@ add_executable(trabalho_01
 
 target_link_libraries(trabalho_01
     PRIVATE
-        common
+        renderer
+        geometry
+        result
+        
         OpenGL::GL
         glfw
         imgui::imgui

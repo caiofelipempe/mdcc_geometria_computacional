@@ -115,7 +115,7 @@ struct Q6State {
 // ─────────────────────────────────────────────
 //  Aplicação principal
 // ─────────────────────────────────────────────
-class Trabalho02 : public Renderer {
+class Tarefa02 : public Renderer {
 public:
     using Renderer::Renderer;
 
@@ -735,6 +735,6 @@ private:
 //  Entry point
 // ─────────────────────────────────────────────
 int main() {
-    Trabalho02 app;
-    app.run(800, 600, "Trabalho 02 - Geometria Computacional");
+    Tarefa02 app;
+    app.run(800, 600, "Tarefa 02 - Geometria Computacional");
 }

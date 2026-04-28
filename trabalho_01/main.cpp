@@ -14,7 +14,8 @@ using namespace sort;
 //  Aplicação principal
 // ─────────────────────────────────────────────
 class Trabalho01 : public Renderer {
-
+    int width  = 800;
+    int height = 600;
 }
 
 // ─────────────────────────────────────────────

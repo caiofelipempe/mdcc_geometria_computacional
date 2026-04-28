@@ -382,31 +382,34 @@ public:
         const Vec& a = *this;
         Vec out{};
 
+        // x
         out[0] =
-            +(a[1] * (b[2] * c[3] - b[3] * c[2])
-            - a[2] * (b[1] * c[3] - b[3] * c[1])
-            + a[3] * (b[1] * c[2] - b[2] * c[1]));
+            a[1] * (b[2] * c[3] - b[3] * c[2])
+        - a[2] * (b[1] * c[3] - b[3] * c[1])
+        + a[3] * (b[1] * c[2] - b[2] * c[1]);
 
+        // y
         out[1] =
-            -(a[0] * (b[2] * c[3] - b[3] * c[2])
-            - a[2] * (b[0] * c[3] - b[3] * c[0])
-            + a[3] * (b[0] * c[2] - b[2] * c[0]));
+        -( a[0] * (b[2] * c[3] - b[3] * c[2])
+        - a[2] * (b[0] * c[3] - b[3] * c[0])
+        + a[3] * (b[0] * c[2] - b[2] * c[0]) );
 
+        // z
         out[2] =
-            +(a[0] * (b[1] * c[3] - b[3] * c[1])
-            - a[1] * (b[0] * c[3] - b[3] * c[0])
-            + a[3] * (b[0] * c[1] - b[1] * c[0]));
+            a[0] * (b[1] * c[3] - b[3] * c[1])
+        - a[1] * (b[0] * c[3] - b[3] * c[0])
+        + a[3] * (b[0] * c[1] - b[1] * c[0]);
 
+        // w (termo real)
         out[3] =
-            -(a[0] * (b[1] * c[2] - b[2] * c[1])
-            - a[1] * (b[0] * c[2] - b[2] * c[0])
-            + a[2] * (b[0] * c[1] - b[1] * c[0]));
+        -( a[0] * (b[1] * c[2] - b[2] * c[1])
+        - a[1] * (b[0] * c[2] - b[2] * c[0])
+        + a[2] * (b[0] * c[1] - b[1] * c[0]) );
 
         return out;
     }
 
     Vec normalized(T eps = static_cast<T>(1e-8)) const {
-        // ||v||^2
         T sqr = dot(*this);
 
         if (sqr <= eps * eps)
@@ -460,12 +463,10 @@ public:
 #endif
             }
 
-            // resto escalar
             for (; i < size(); ++i)
                 out[i] = data[i] * inv_len;
 
         } else {
-            // fallback escalar
             for (std::size_t i = 0; i < size(); ++i)
                 out[i] = data[i] * inv_len;
         }

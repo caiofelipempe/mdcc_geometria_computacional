@@ -1,5 +1,6 @@
 add_executable(trabalho_01
     main.cpp
+    utils.hpp
 )
 
 target_link_libraries(trabalho_01

@@ -23,4 +23,4 @@ void selectSort(std::vector<T>& arr, Compare comp) {
     }
 }
 
-}
+} // namespace sort

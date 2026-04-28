@@ -4,9 +4,9 @@
 #include "utils.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 using namespace geometry;
-using namespace sort;
 
 // ─────────────────────────────────────────────
 //  Aplicação principal
@@ -29,10 +29,8 @@ protected:
 
     void onUI() override {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
-        ImGui::SetNextWindowViewport(viewport->ID);
 
         ImGui::Begin(
             "Main",
@@ -125,3 +123,11 @@ private:
         );
     }
 };
+
+// ─────────────────────────────────────────────
+//  Entry point
+// ─────────────────────────────────────────────
+int main() {
+    Trabalho01 app;
+    app.run(800, 600, "Tarefa 02 - Geometria Computacional");
+}

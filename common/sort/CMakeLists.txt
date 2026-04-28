@@ -1,9 +1,3 @@
-add_library(sort STATIC
-    mergesort.hpp
-    quicksort.hpp
-    selectsort.hpp
-)
+add_library(sort INTERFACE)
 
-target_include_directories(sort PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+target_include_directories(sort INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

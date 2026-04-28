@@ -8,6 +8,7 @@ target_link_libraries(trabalho_01
         renderer
         geometry
         result
+        sort
         
         OpenGL::GL
         glfw

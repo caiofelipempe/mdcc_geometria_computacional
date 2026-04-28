@@ -43,4 +43,4 @@ void quickSort(std::vector<T>& arr, Compare comp) {
     }
 }
 
-}
+} // namespace sort

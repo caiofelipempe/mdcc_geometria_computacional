@@ -52,4 +52,4 @@ void mergeSort(std::vector<T>& arr, Compare comp) {
     }
 }
 
-}
+} // namespace sort

@@ -3,17 +3,17 @@
 #include "vector.hpp"
 #include "utils.hpp"
 
+#include <imgui.h>
+
 using namespace geometry;
 using namespace sort;
-
-#include <imgui.h>
 
 // ─────────────────────────────────────────────
 //  Aplicação principal
 // ─────────────────────────────────────────────
 class Trabalho01 : public Renderer {
-    int width;
-    int height;
+public:
+    Trabalho01() = default;
 
 protected:
     void onInit(int w, int h, const std::string&) override {
@@ -21,13 +21,11 @@ protected:
     }
 
     void onWindowResize(int w, int h) override {
-        width = w;
+        width  = w;
         height = h;
     }
 
-    void onUpdate(float) override {
-        
-    }
+    void onUpdate(float) override {}
 
     void onUI() override {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -37,83 +35,93 @@ protected:
         ImGui::SetNextWindowViewport(viewport->ID);
 
         ImGui::Begin(
-            "Main", 
+            "Main",
             nullptr,
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_NoBringToFrontOnFocus
+            ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse
         );
-            float fullHeight = height;
 
-            // ---------- Painel Esquerdo ----------
-            ImGui::BeginChild("Panel", ImVec2(300, fullHeight), true);
-                panelUI();
-            ImGui::EndChild();
+        float fullHeight = ImGui::GetContentRegionAvail().y;
 
-            // ---------- Splitter ----------
-            VerticalSplitter(leftPanelWidth, 150.0f, 200.0f);
+        // ---------- Painel Esquerdo ----------
+        ImGui::BeginChild("Panel", ImVec2(leftPanelWidth, fullHeight), true);
+        panelUI();
+        ImGui::EndChild();
 
-            // ---------- Painel Direito (Canvas) ----------
-            ImGui::SameLine();
-            ImGui::BeginChild("Canvas", ImVec2(0, fullHeight), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-                drawCanvas();
-            ImGui::EndChild();
+        // ---------- Splitter ----------
+        drawVerticalSplitter(leftPanelWidth, 150.0f, 200.0f);
+
+        // ---------- Painel Direito (Canvas) ----------
+        ImGui::SameLine();
+        ImGui::BeginChild(
+            "Canvas",
+            ImVec2(0, fullHeight),
+            true,
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse
+        );
+        drawCanvas();
+        ImGui::EndChild();
+
         ImGui::End();
-
     }
 
 private:
-    void VerticalSplitter(float& leftWidth, float minLeft, float minRight) {
+    int width  = 0;
+    int height = 0;
+
+    float leftPanelWidth = 300.0f;
+
+private:
+    void drawVerticalSplitter(float& leftWidth, float minLeft, float minRight) {
         ImGui::SameLine();
-        ImGui::Button("##splitter", ImVec2(4.0f, -1.0f));
+
+        ImGui::InvisibleButton("##splitter", ImVec2(6.0f, -1.0f));
+
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
         if (ImGui::IsItemActive()) {
             float delta = ImGui::GetIO().MouseDelta.x;
             leftWidth += delta;
         }
 
-        float totalWidth = ImGui::GetContentRegionAvail().x + leftWidth;
-        leftWidth = ImClamp(leftWidth, minLeft, totalWidth - minRight);
+        float total = ImGui::GetContentRegionAvail().x + leftWidth;
+        leftWidth = ImClamp(leftWidth, minLeft, total - minRight);
     }
 
     void panelUI() {
-        ImGui::Text("Painel Esquerdo");
+        ImGui::TextUnformatted("Painel Esquerdo");
         ImGui::Separator();
-        ImGui::Text("Controles aqui");
+        ImGui::TextUnformatted("Controles aqui");
     }
 
     void drawCanvas() {
-        ImGui::Text("Canvas");
+        ImGui::TextUnformatted("Canvas");
         ImGui::Separator();
 
-        ImVec2 canvasPos  = ImGui::GetCursorScreenPos();
-        ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+        ImVec2 pos  = ImGui::GetCursorScreenPos();
+        ImVec2 size = ImGui::GetContentRegionAvail();
 
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImDrawList* dl = ImGui::GetWindowDrawList();
 
-        drawList->AddRectFilled(
-            canvasPos,
-            ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y),
-            IM_COL32(50, 50, 50, 255)
+        dl->AddRectFilled(
+            pos,
+            ImVec2(pos.x + size.x, pos.y + size.y),
+            IM_COL32(45, 45, 45, 255)
         );
 
-        drawList->AddCircle(
-            ImVec2(canvasPos.x + canvasSize.x * 0.5f,
-                canvasPos.y + canvasSize.y * 0.5f),
+        dl->AddCircle(
+            ImVec2(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f),
             50.0f,
-            IM_COL32(255, 100, 100, 255),
+            IM_COL32(220, 100, 100, 255),
             32,
             3.0f
         );
     }
-
-}
-
-// ─────────────────────────────────────────────
-//  Entry point
-// ─────────────────────────────────────────────
-int main() {
-    Trabalho01 app;
-    app.run(800, 600, "Trabalho 01 - Geometria Computacional");
-}
+};

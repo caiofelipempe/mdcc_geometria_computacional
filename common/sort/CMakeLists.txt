@@ -1,7 +1,7 @@
 add_library(sort STATIC
-    mergesort.cpp
-    quicksort.cpp
-    selectsort.cpp
+    mergesort.hpp
+    quicksort.hpp
+    selectsort.hpp
 )
 
 target_include_directories(sort PUBLIC

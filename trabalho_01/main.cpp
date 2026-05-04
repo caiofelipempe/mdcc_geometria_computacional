@@ -1,7 +1,7 @@
 #include "renderer.hpp"
 #include "input.h"
 #include "vector.hpp"
-#include "utils.hpp"
+#include "utils/file_selector.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -75,6 +75,8 @@ private:
 
     float leftPanelWidth = 300.0f;
 
+    FileSelector fileSelector;
+
 private:
     void drawVerticalSplitter(float& leftWidth, float minLeft, float minRight) {
         ImGui::SameLine();
@@ -94,9 +96,28 @@ private:
     }
 
     void panelUI() {
-        ImGui::TextUnformatted("Painel Esquerdo");
-        ImGui::Separator();
-        ImGui::TextUnformatted("Controles aqui");
+        if (ImGui::Button("Abrir Seletor")) {
+            fileSelector.Open();
+        }
+        
+        // Mostrar conteúdo do arquivo
+        if (!fileSelector.GetContent().empty()) {
+            ImGui::Separator();
+            ImGui::Text("Conteúdo do arquivo:");
+            ImGui::Separator();
+            
+            // Usar TextWrapped para texto longo
+            ImGui::TextWrapped("%s", fileSelector.GetContent().c_str());
+            
+            // Botão para limpar
+            if (ImGui::Button("Limpar")) {
+                // Se quiser limpar, precisaria adicionar um método
+                // fileSelector.ClearContent();
+            }
+        }
+        
+        // Desenhar o seletor
+        fileSelector.Draw();
     }
 
     void drawCanvas() {

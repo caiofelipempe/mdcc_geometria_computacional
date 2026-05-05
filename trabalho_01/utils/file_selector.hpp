@@ -31,6 +31,7 @@ private:
     
     std::vector<FileItem> items;  // Lista de arquivos e pastas
     std::string selectedItem;
+    std::string lastSelectedItem;
     std::string fileContent;
     bool isOpen;
     std::string currentDirectory;
@@ -202,28 +203,25 @@ public:
         for (size_t i = 0; i < items.size(); i++) {
             const auto& item = items[i];
             
-            // Ícone diferente para pasta e arquivo
-            if (item.isDirectory) {
-                ImGui::TextColored(ImVec4(0.3f, 0.5f, 1.0f, 1.0f), "[PASTA] %s", item.name.c_str());
-                ImGui::SameLine();
-                if (ImGui::SmallButton(("Abrir##" + item.name).c_str())) {
-                    std::string newPath;
-#ifdef _WIN32
-                    newPath = currentDirectory + "\\" + item.name;
-#else
-                    newPath = currentDirectory + "/" + item.name;
-#endif
-                    NavigateTo(newPath);
-                }
-            } else {
-                // Para arquivos .obj
-                ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "[OBJ]  %s", item.name.c_str());
-            }
-            
-            // Selectable para selecionar (funciona tanto para pasta quanto para arquivo)
-            if (ImGui::Selectable(("##select" + item.name).c_str(), selectedItem == item.name)) {
+            if (ImGui::Selectable((item.name).c_str(), selectedItem == item.name)) {
                 selectedItem = item.name;
                 isDirectorySelected = item.isDirectory;
+
+                if (lastSelectedItem == selectedItem) {
+                    if(item.isDirectory) {
+                        std::string newPath;
+#ifdef _WIN32
+                        newPath = currentDirectory + "\\" + item.name;
+#else
+                        newPath = currentDirectory + "/" + item.name;
+#endif
+                        NavigateTo(newPath);
+                    } else {
+                        ReadFile();
+                    }
+                }
+                
+                lastSelectedItem = selectedItem;
             }
             
             // Tooltip para mostrar caminho completo

@@ -203,6 +203,11 @@ public:
         for (size_t i = 0; i < items.size(); i++) {
             const auto& item = items[i];
             
+            if (item.isDirectory) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f)); // Azul para pastas
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 0.6f, 1.0f)); // Amarelo para arquivos .obj
+            }
             if (ImGui::Selectable((item.name).c_str(), selectedItem == item.name)) {
                 selectedItem = item.name;
                 isDirectorySelected = item.isDirectory;
@@ -223,6 +228,7 @@ public:
                 
                 lastSelectedItem = selectedItem;
             }
+            ImGui::PopStyleColor();
             
             // Tooltip para mostrar caminho completo
             if (ImGui::IsItemHovered()) {

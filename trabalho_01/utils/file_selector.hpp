@@ -364,6 +364,10 @@ public:
         return fileContent;
     }
     
+    void ClearContent() {
+        fileContent = "";
+    }
+    
     bool IsOpen() const {
         return isOpen;
     }

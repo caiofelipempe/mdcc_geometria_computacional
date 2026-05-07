@@ -129,4 +129,19 @@ Vector<T, N> operator*(T scalar, const Vector<T, N>& v) {
     return v * scalar;
 }
 
+/* ================= ALIASES ================= */
+
+template <Arithmetic T> using Vec2 = Vector<T, 2>;
+template <Arithmetic T> using Vec3 = Vector<T, 3>;
+template <Arithmetic T> using Quat = Vector<T, 4>;
+
+using Vec2f = Vec2<float>;
+using Vec2d = Vec2<double>;
+
+using Vec3f = Vec2<float>;
+using Vec3d = Vec2<double>;
+
+using Quatf = Vec2<float>;
+using Quatd = Vec2<double>;
+
 } // namespace geometry

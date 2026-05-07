@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Script para gerenciar build e clean do projeto CMake.
-Uso: python build.py [comando] [opções]
+Adaptado para suportar Tarefa 02 e Trabalho 01.
 """
 
 import os
 import sys
 import subprocess
 import argparse
+import shutil
 from pathlib import Path
 
 
@@ -34,14 +35,18 @@ class BuildManager:
             print(f"❌ Erro ao executar comando: {e}")
             return False
 
-    def configure(self, trabalho=None):
-        """Configura o projeto com CMake."""
+    def configure(self, trabalho=None, tarefa=None):
+        """Configura o projeto com CMake mapeando para as variáveis do CMakeLists."""
         if not self.build_dir.exists():
             self.build_dir.mkdir(parents=True)
             print(f"✅ Diretório de build criado: {self.build_dir}")
 
-        vcpkg_path = self.project_root / "vcpkg_installed" / "x64-linux" / "share"
-        
+        # Caminho para dependências do vcpkg em modo manifesto
+        vcpkg_path = self.project_root / "vcpkg_installed" / "x64-linux"
+        if not vcpkg_path.exists():
+            # Tenta um caminho genérico se o x64-linux não existir (ex: Windows ou outras distros)
+            vcpkg_path = self.project_root / "vcpkg_installed"
+
         cmake_args = [
             "cmake",
             "-B", str(self.build_dir),
@@ -50,11 +55,18 @@ class BuildManager:
             f"-DCMAKE_PREFIX_PATH={str(vcpkg_path)}",
         ]
 
-        # Configurar quale "trabalho" compilar
-        if trabalho:
-            for i in range(1, 4):
-                cmake_args.append(f"-DBUILD_TRABALHO_0{i}={'ON' if i == trabalho else 'OFF'}")
-            print(f"✓ Configurando para compilar: Trabalho {trabalho:02d}")
+        # Lógica de ativação baseada no seu CMakeLists.txt
+        if trabalho == 1:
+            cmake_args.append("-DBUILD_TRABALHO_01=ON")
+            print("✓ Ativando: Trabalho 01")
+        elif trabalho is not None:
+             cmake_args.append("-DBUILD_TRABALHO_01=OFF")
+
+        if tarefa == 2:
+            cmake_args.append("-DBUILD_TAREFA_02=ON")
+            print("✓ Ativando: Tarefa 02")
+        elif tarefa is not None:
+            cmake_args.append("-DBUILD_TAREFA_02=OFF")
 
         return self.run_command(cmake_args)
 
@@ -67,37 +79,23 @@ class BuildManager:
         cmd = ["cmake", "--build", str(self.build_dir), "--config", self.build_type, "-j"]
         return self.run_command(cmd)
 
-    def clean(self):
-        """Limpa os arquivos compilados."""
-        if not self.build_dir.exists():
-            print("✅ Diretório de build já não existe.")
-            return True
-
-        cmd = ["cmake", "--build", str(self.build_dir), "--target", "clean"]
-        success = self.run_command(cmd)
-        
-        if success:
-            print(f"✅ Clean concluído")
-        return success
-
     def clean_all(self):
         """Remove completamente o diretório de build."""
         if self.build_dir.exists():
-            import shutil
             print(f"🗑️  Removendo diretório de build: {self.build_dir}")
             shutil.rmtree(self.build_dir)
             print("✅ Diretório de build removido")
             return True
-        else:
-            print("✅ Diretório de build já não existe.")
-            return True
+        print("✅ Diretório de build já não existe.")
+        return True
 
-    def rebuild(self, trabalho=None):
+    def rebuild(self, trabalho=None, tarefa=None):
         """Remove build anterior e compila novamente."""
         print("🔄 Executando rebuild...")
         self.clean_all()
-        self.configure(trabalho)
-        return self.build()
+        if self.configure(trabalho, tarefa):
+            return self.build()
+        return False
 
 
 def main():
@@ -106,34 +104,41 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos:
-  python build.py configure              # Configura o projeto (padrão: trabalho 02)
-  python build.py configure --trabalho 1 # Configura para compilar trabalho 01
-  python build.py build                  # Compila o projeto
-  python build.py clean                  # Limpa objetos compilados
-  python build.py clean-all              # Remove diretório de build completamente
-  python build.py rebuild                # Remove build anterior e recompila
+  python build.py configure --trabalho 1  # Configura Trabalho 01
+  python build.py configure --tarefa 2    # Configura Tarefa 02
+  python build.py rebuild --trabalho 1    # Limpa e constrói Trabalho 01
+  python build.py build                   # Apenas compila o que já está configurado
+  python build.py clean-all               # Deleta a pasta build
         """
     )
 
     parser.add_argument(
         "command",
-        choices=["configure", "build", "clean", "clean-all", "rebuild"],
+        choices=["configure", "build", "clean-all", "rebuild"],
         help="Comando a executar"
     )
     
     parser.add_argument(
         "--trabalho",
         type=int,
-        choices=[1, 2, 3],
+        choices=[1],
         default=None,
-        help="Qual trabalho compilar (1, 2 ou 3). Padrão: 2"
+        help="Compilar Trabalho (atualmente suporta: 1)"
+    )
+
+    parser.add_argument(
+        "--tarefa",
+        type=int,
+        choices=[2],
+        default=None,
+        help="Compilar Tarefa (atualmente suporta: 2)"
     )
     
     parser.add_argument(
         "--build-type",
         choices=["Debug", "Release"],
         default="Release",
-        help="Tipo de build (Debug ou Release). Padrão: Release"
+        help="Tipo de build. Padrão: Release"
     )
 
     args = parser.parse_args()
@@ -143,15 +148,13 @@ Exemplos:
 
     success = False
     if args.command == "configure":
-        success = manager.configure(args.trabalho)
+        success = manager.configure(trabalho=args.trabalho, tarefa=args.tarefa)
     elif args.command == "build":
         success = manager.build()
-    elif args.command == "clean":
-        success = manager.clean()
     elif args.command == "clean-all":
         success = manager.clean_all()
     elif args.command == "rebuild":
-        success = manager.rebuild(args.trabalho)
+        success = manager.rebuild(trabalho=args.trabalho, tarefa=args.tarefa)
 
     if success:
         print("\n✅ Comando concluído com sucesso!")

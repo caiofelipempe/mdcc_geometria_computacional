@@ -3,295 +3,188 @@
 #include <cmath>
 #include <iostream>
 #include <optional>
+#include "arithmetic.hpp"
 #include "point.hpp"
 #include "vector.hpp"
 #include "segment.hpp"
 
 namespace geometry {
 
-/* ================= RAY ================= */
-
+/**
+ * @brief Classe Ray definida por uma origem (Ponto) e uma direção (Vetor).
+ */
 template <Arithmetic T, std::size_t N>
 class Ray {
 public:
     using PointType = Point<T, N>;
     using VectorType = Vector<T, N>;
     using SegmentType = Segment<T, N>;
-    using RayType = Ray<T, N>;
 
 private:
     PointType origin;
     VectorType direction_vec;
 
 public:
-    /* ================= CONSTRUCTORS ================= */
+    /* ================= CONSTRUTORES ================= */
 
     Ray() = default;
 
     Ray(const PointType& orig, const VectorType& dir)
         : origin(orig), direction_vec(dir) {
+        
         if constexpr (N == 0) {
             if (orig.size() != dir.size())
-                throw std::runtime_error("Size mismatch");
+                throw std::runtime_error("Size mismatch entre origem e direção");
         }
         
-        // Verifica se a direção não é zero
-        T len2 = dir.dot(dir);
-        if (len2 <= static_cast<T>(0))
-            throw std::runtime_error("Ray direction cannot be zero");
+        if (direction_vec.dot(direction_vec) <= T{0})
+            throw std::runtime_error("A direção do raio não pode ser um vetor nulo");
     }
 
-    Ray(const PointType& orig, const PointType& dir_point)
-        : origin(orig), direction_vec(dir_point - orig) {
-        T len2 = direction_vec.dot(direction_vec);
-        if (len2 <= static_cast<T>(0))
-            throw std::runtime_error("Ray direction cannot be zero");
+    // Raio passando por dois pontos
+    Ray(const PointType& orig, const PointType& target)
+        : origin(orig), direction_vec(target - orig) {
+        if (direction_vec.dot(direction_vec) <= T{0})
+            throw std::runtime_error("Os pontos de origem e destino devem ser distintos");
     }
 
-    /* ================= ACCESSORS ================= */
+    /* ================= ACESSO ================= */
 
     const PointType& get_origin() const noexcept { return origin; }
     const VectorType& get_direction() const noexcept { return direction_vec; }
     
     void set_origin(const PointType& orig) { origin = orig; }
     void set_direction(const VectorType& dir) { 
-        T len2 = dir.dot(dir);
-        if (len2 <= static_cast<T>(0))
-            throw std::runtime_error("Ray direction cannot be zero");
+        if (dir.dot(dir) <= T{0})
+            throw std::runtime_error("A direção do raio não pode ser um vetor nulo");
         direction_vec = dir;
     }
 
-    /* ================= NORMALIZATION ================= */
+    /* ================= OPERAÇÕES DE PONTO ================= */
 
-    Ray normalized(T eps = static_cast<T>(1e-8)) const {
-        T len = std::sqrt(direction_vec.dot(direction_vec));
-        if (len <= eps)
-            throw std::runtime_error("Cannot normalize zero direction");
-        return Ray(origin, direction_vec / len);
-    }
-
-    VectorType normalized_direction(T eps = static_cast<T>(1e-8)) const {
-        T len = std::sqrt(direction_vec.dot(direction_vec));
-        if (len <= eps)
-            throw std::runtime_error("Cannot normalize zero direction");
-        return direction_vec / len;
-    }
-
-    /* ================= POINT EVALUATION ================= */
-
+    // P(t) = O + t * D
     PointType at(T t) const {
-        // t >= 0
-        if (t < static_cast<T>(0))
-            throw std::runtime_error("Ray parameter must be >= 0");
-        return origin + direction_vec * t;
+        if (t < T{0}) throw std::runtime_error("O parâmetro t do raio deve ser >= 0");
+        return origin + (direction_vec * t);
     }
 
-    PointType operator()(T t) const {
-        return at(t);
+    PointType operator()(T t) const { return at(t); }
+
+    /* ================= NORMALIZAÇÃO ================= */
+
+    Ray normalized() const {
+        return Ray(origin, direction_vec.normalized());
     }
 
-    /* ================= DISTANCE TO POINT ================= */
+    /* ================= GEOMETRIA ================= */
 
-    T distance_to_point(const PointType& point) const {
-        return std::sqrt(squared_distance_to_point(point));
-    }
-
-    T squared_distance_to_point(const PointType& point) const {
-        VectorType to_point = point - origin;
-        T dot = to_point.dot(direction_vec);
-        T dir_len2 = direction_vec.dot(direction_vec);
+    T squared_distance_to_point(const PointType& p) const {
+        VectorType to_p = p - origin;
+        T t = to_p.dot(direction_vec) / direction_vec.dot(direction_vec);
         
-        if (dot <= static_cast<T>(0)) {
-            // Ponto está atrás da origem
-            return to_point.dot(to_point);
+        if (t < T{0}) {
+            // O ponto mais próximo é a origem (atrás do raio)
+            return to_p.dot(to_p);
         }
         
-        // Projeção no raio
-        T t = dot / dir_len2;
-        PointType closest = origin + direction_vec * t;
-        return point.squared_distance_to(closest);
+        PointType closest = origin + (direction_vec * t);
+        return p.squared_distance_to(closest);
     }
 
-    PointType closest_point_to(const PointType& point) const {
-        VectorType to_point = point - origin;
-        T dot = to_point.dot(direction_vec);
-        
-        if (dot <= static_cast<T>(0)) {
-            return origin;
-        }
-        
-        T t = dot / direction_vec.dot(direction_vec);
-        return origin + direction_vec * t;
+    T distance_to_point(const PointType& p) const {
+        return std::sqrt(squared_distance_to_point(p));
     }
 
-    /* ================= INTERSECTION ================= */
+    PointType closest_point_to(const PointType& p) const {
+        VectorType to_p = p - origin;
+        T projection = to_p.dot(direction_vec);
+        
+        if (projection <= T{0}) return origin;
+        
+        T t = projection / direction_vec.dot(direction_vec);
+        return origin + (direction_vec * t);
+    }
 
-    std::optional<PointType> intersection(const SegmentType& segment, T eps = static_cast<T>(1e-8)) const {
+    /* ================= INTERSECÇÃO ================= */
+
+    std::optional<PointType> intersection(const SegmentType& seg, T eps = static_cast<T>(1e-8)) const {
         if constexpr (N == 2) {
-            // Implementação 2D
-            const PointType& a = origin;
-            const PointType& b = segment.start();
-            const PointType& c = segment.end();
-            
-            Vector<T, 2> dir = direction_vec;
-            Vector<T, 2> seg_dir = c - b;
-            Vector<T, 2> a_to_b = b - a;
-            
-            T cross_dir_seg = dir[0] * seg_dir[1] - dir[1] * seg_dir[0];
-            
-            if (std::abs(cross_dir_seg) < eps) {
-                // Paralelo
-                return std::nullopt;
+            // Reutiliza a lógica de cross product 2D do arithmetic.hpp
+            Vector2<T> v1 = direction_vec;
+            Vector2<T> v2 = seg.end() - seg.start();
+            Vector2<T> v3 = seg.start() - origin;
+
+            T det = v1[0] * v2[1] - v1[1] * v2[0];
+            if (std::abs(det) < eps) return std::nullopt; // Paralelos
+
+            T t = (v3[0] * v2[1] - v3[1] * v2[0]) / det;
+            T u = (v3[0] * v1[1] - v3[1] * v1[0]) / det;
+
+            if (t >= -eps && u >= -eps && u <= T{1} + eps) {
+                return at(std::max(T{0}, t));
             }
-            
-            T t = (a_to_b[0] * seg_dir[1] - a_to_b[1] * seg_dir[0]) / cross_dir_seg;
-            T u = (a_to_b[0] * dir[1] - a_to_b[1] * dir[0]) / cross_dir_seg;
-            
-            if (t >= -eps && u >= -eps && u <= static_cast<T>(1) + eps) {
-                if (t < 0) return std::nullopt;
-                return a + dir * t;
+        } 
+        else if constexpr (N == 3) {
+            // Lógica de intersecção 3D usando cross product do Vector
+            Vector3<T> seg_dir = seg.end() - seg.start();
+            Vector3<T> p_diff = seg.start() - origin;
+            Vector3<T> cp = direction_vec.cross(seg_dir);
+            T det = cp.dot(cp);
+
+            if (det < eps) return std::nullopt;
+
+            T t = p_diff.cross(seg_dir).dot(cp) / det;
+            T u = p_diff.cross(direction_vec).dot(cp) / det;
+
+            if (t >= -eps && u >= -eps && u <= T{1} + eps) {
+                return at(std::max(T{0}, t));
             }
-            
-            return std::nullopt;
-        } else if constexpr (N == 3) {
-            // Implementação 3D simplificada
-            const PointType& a = origin;
-            const PointType& b = segment.start();
-            const PointType& c = segment.end();
-            
-            Vector<T, 3> dir = direction_vec;
-            Vector<T, 3> seg_dir = c - b;
-            Vector<T, 3> a_to_b = b - a;
-            
-            Vector<T, 3> cross = dir.cross(seg_dir);
-            T denom = cross.dot(cross);
-            
-            if (denom < eps) {
-                return std::nullopt; // Paralelo
-            }
-            
-            // Resolve sistema linear (simplificado)
-            Vector<T, 3> a_to_b_cross_seg = a_to_b.cross(seg_dir);
-            T t = a_to_b_cross_seg.dot(cross) / denom;
-            
-            if (t < -eps) return std::nullopt;
-            
-            Vector<T, 3> a_to_b_cross_dir = a_to_b.cross(dir);
-            T u = a_to_b_cross_dir.dot(cross) / denom;
-            
-            if (u >= -eps && u <= static_cast<T>(1) + eps) {
-                return a + dir * t;
-            }
-            
-            return std::nullopt;
-        } else {
-            static_assert(N == 2 || N == 3, "Intersection only implemented for 2D/3D rays");
-            return std::nullopt;
         }
+        return std::nullopt;
     }
 
-    std::optional<PointType> intersection(const Ray& other, T eps = static_cast<T>(1e-8)) const {
-        if constexpr (N == 2) {
-            // Intersecção de dois raios em 2D
-            const PointType& a = origin;
-            const PointType& b = other.origin;
-            
-            Vector<T, 2> dir = direction_vec;
-            Vector<T, 2> other_dir = other.direction_vec;
-            Vector<T, 2> a_to_b = b - a;
-            
-            T cross_dir_other = dir[0] * other_dir[1] - dir[1] * other_dir[0];
-            
-            if (std::abs(cross_dir_other) < eps) {
-                return std::nullopt; // Paralelos
-            }
-            
-            T t = (a_to_b[0] * other_dir[1] - a_to_b[1] * other_dir[0]) / cross_dir_other;
-            T u = (a_to_b[0] * dir[1] - a_to_b[1] * dir[0]) / cross_dir_other;
-            
-            if (t >= -eps && u >= -eps) {
-                return a + dir * t;
-            }
-            
-            return std::nullopt;
-        } else {
-            static_assert(N == 2, "Ray-ray intersection only implemented for 2D");
-            return std::nullopt;
-        }
-    }
+    /* ================= REFLEXÃO ================= */
 
-    /* ================= REFLECTION ================= */
-
-    Ray reflect(const PointType& point, const VectorType& normal) const {
-        // Reflete o raio em um ponto com uma normal dada
-        VectorType incident = (point - origin).normalized();
+    Ray reflect(const PointType& contact_point, const VectorType& normal) const {
+        // R = I - 2(I.N)N
+        VectorType incident = direction_vec.normalized();
         T dot = incident.dot(normal);
-        VectorType reflected = incident - normal * (static_cast<T>(2) * dot);
-        return Ray(point, reflected);
+        VectorType reflected = incident - (normal * (static_cast<T>(2) * dot));
+        return Ray(contact_point, reflected);
     }
 
-    /* ================= CONTAINMENT ================= */
+    /* ================= BOOLEANOS ================= */
 
-    bool contains_point(const PointType& point, T eps = static_cast<T>(1e-8)) const {
-        VectorType to_point = point - origin;
-        
-        // Verifica se são colineares
+    bool contains_point(const PointType& p, T eps = static_cast<T>(1e-8)) const {
+        VectorType to_p = p - origin;
+        // Verifica se é colinear via cross product (norma deve ser ~0)
         if constexpr (N == 2) {
-            T cross = to_point[0] * direction_vec[1] - to_point[1] * direction_vec[0];
-            if (std::abs(cross) > eps)
-                return false;
+            T cp = to_p[0] * direction_vec[1] - to_p[1] * direction_vec[0];
+            if (std::abs(cp) > eps) return false;
         } else if constexpr (N == 3) {
-            VectorType cross = to_point.cross(direction_vec);
-            if (std::abs(cross[0]) > eps || std::abs(cross[1]) > eps || std::abs(cross[2]) > eps)
-                return false;
+            if (to_p.cross(direction_vec).dot(to_p.cross(direction_vec)) > eps) return false;
         }
         
-        // Verifica se está na mesma direção
-        T dot = to_point.dot(direction_vec);
-        return dot >= -eps;
+        return to_p.dot(direction_vec) >= -eps;
     }
-
-    /* ================= COMPARISONS ================= */
 
     bool operator==(const Ray& other) const {
-        if constexpr (N == 0) {
-            if (origin.size() != other.origin.size())
-                return false;
-        }
-        
-        // Verifica se as origens são iguais e as direções são paralelas e mesma orientação
-        if (origin != other.origin)
-            return false;
-        
-        VectorType normalized_dir = normalized_direction();
-        VectorType other_normalized_dir = other.normalized_direction();
-        
-        return normalized_dir == other_normalized_dir;
+        // Raios são iguais se têm mesma origem e direções normalizadas idênticas
+        if (origin != other.origin) return false;
+        return direction_vec.normalized() == other.direction_vec.normalized();
     }
 
-    bool operator!=(const Ray& other) const {
-        return !(*this == other);
-    }
-
-    /* ================= OUTPUT ================= */
-
-    friend std::ostream& operator<<(std::ostream& os, const Ray& ray) {
-        os << "Ray{origin: " << ray.origin << ", direction: " << ray.direction_vec << "}";
+    friend std::ostream& operator<<(std::ostream& os, const Ray& r) {
+        os << "Ray(O: " << r.origin << ", D: " << r.direction_vec << ")";
         return os;
     }
 };
 
 /* ================= ALIASES ================= */
 
-template <Arithmetic T>
-using Ray2 = Ray<T, 2>;
-
-template <Arithmetic T>
-using Ray3 = Ray<T, 3>;
-
+template <Arithmetic T> using Ray2 = Ray<T, 2>;
+template <Arithmetic T> using Ray3 = Ray<T, 3>;
 using Ray2f = Ray2<float>;
-using Ray2d = Ray2<double>;
 using Ray3f = Ray3<float>;
-using Ray3d = Ray3<double>;
 
 } // namespace geometry

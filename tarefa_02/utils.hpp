@@ -3,6 +3,7 @@
 #include <random>
 
 #include "vector.hpp"
+#include "result.hpp"
 
 using Point2f = geometry::Vector<float, 2>;
 using Segment2f = std::array<Point2f, 2>;

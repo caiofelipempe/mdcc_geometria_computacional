@@ -8,6 +8,8 @@ target_include_directories(renderer PUBLIC
 
 target_link_libraries(renderer PUBLIC
     OpenGL::GL
+    OpenGL::GLU
+    GLEW::GLEW
     glfw
     imgui::imgui
 )

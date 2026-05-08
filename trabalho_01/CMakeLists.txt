@@ -11,6 +11,8 @@ target_link_libraries(trabalho_01
         sort
         
         OpenGL::GL
+        OpenGL::GLU
+        GLEW::GLEW
         glfw
         imgui::imgui
 )

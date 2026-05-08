@@ -8,6 +8,10 @@
 #include <imgui_internal.h>
 #include <vector>
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <GL/glu.h>
+
 using namespace geometry;
 
 // ─────────────────────────────────────────────
@@ -80,6 +84,11 @@ private:
     FileSelector fileSelector;
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
+
+    GLuint fbo = 0;
+    GLuint fboTexture = 0;
+    GLuint rbo = 0; // Para o Depth Buffer (necessário em 3D)
+    ImVec2 canvasSize = {0, 0};
 
 private:
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPointsFromOBJ(const std::string& conteudo) {
@@ -187,27 +196,115 @@ private:
         }
     }
 
+    void renderScene(int w, int h) {
+        // Salva os estados do OpenGL para não quebrar o ImGui
+        glPushAttrib(GL_ALL_ATTRIB_BITS);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glViewport(0, 0, w, h);
+        
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.15f, 0.15f, 0.15f, 1.0f); // Cinza levemente diferente
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Configuração de Câmera
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        gluPerspective(45.0, (double)w/(double)h, 0.1, 1000.0);
+        
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        // Afastamos a câmera em 15 unidades no eixo Z para ver o centro
+        gluLookAt(10, 10, 10,  // Posição da Câmera (olhando de diagonal)
+                0, 0, 0,    // Para onde olha (Origem)
+                0, 1, 0);   // Vetor "Cima"
+
+        // 1. Desenhar Eixos (X=Vermelho, Y=Verde, Z=Azul)
+        glLineWidth(2.0f);
+        glBegin(GL_LINES);
+            glColor3f(1, 0, 0); glVertex3f(0,0,0); glVertex3f(5,0,0);
+            glColor3f(0, 1, 0); glVertex3f(0,0,0); glVertex3f(0,5,0);
+            glColor3f(0, 0, 1); glVertex3f(0,0,0); glVertex3f(0,0,5);
+        glEnd();
+
+        // 2. Desenhar um Cubo de Arame (Wireframe) para referência
+        glColor3f(0.5f, 0.5f, 0.5f);
+        glBegin(GL_LINE_LOOP); // Face de cima
+            glVertex3f(-1, 1, -1); glVertex3f(1, 1, -1);
+            glVertex3f(1, 1, 1); glVertex3f(-1, 1, 1);
+        glEnd();
+        glBegin(GL_LINE_LOOP); // Face de baixo
+            glVertex3f(-1, -1, -1); glVertex3f(1, -1, -1);
+            glVertex3f(1, -1, 1); glVertex3f(-1, -1, 1);
+        glEnd();
+
+        // 3. Desenhar os pontos do OBJ (se existirem)
+        if (!objectPoints.empty()) {
+            glPointSize(5.0f);
+            glBegin(GL_POINTS);
+            glColor3f(1.0f, 0.8f, 0.0f); // Dourado
+            for (auto& [name, points] : objectPoints) {
+                for (auto& p : points) {
+                    glVertex3f(p[0], p[1], p[2]);
+                }
+            }
+            glEnd();
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glPopAttrib(); // Restaura os estados do ImGui
+    }
+
+    void setupFBO(int w, int h) {
+        if (fbo) {
+            glDeleteFramebuffers(1, &fbo);
+            glDeleteTextures(1, &fboTexture);
+            glDeleteRenderbuffers(1, &rbo);
+        }
+
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        // Textura de Cor
+        glGenTextures(1, &fboTexture);
+        glBindTexture(GL_TEXTURE_2D, fboTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboTexture, 0);
+
+        // Buffer de Profundidade (Depth)
+        glGenRenderbuffers(1, &rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cerr << "Erro: FBO incompleto!" << std::endl;
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void drawCanvas() {
-        ImGui::TextUnformatted("Canvas");
-        ImGui::Separator();
+        ImVec2 currentSize = ImGui::GetContentRegionAvail();
 
-        ImVec2 pos  = ImGui::GetCursorScreenPos();
-        ImVec2 size = ImGui::GetContentRegionAvail();
+        if (currentSize.x < 1.0f || currentSize.y < 1.0f) return;
 
-        ImDrawList* dl = ImGui::GetWindowDrawList();
+        if (currentSize.x != canvasSize.x || currentSize.y != canvasSize.y) {
+            canvasSize = currentSize;
+            setupFBO((int)canvasSize.x, (int)canvasSize.y);
+        }
 
-        dl->AddRectFilled(
-            pos,
-            ImVec2(pos.x + size.x, pos.y + size.y),
-            IM_COL32(45, 45, 45, 255)
-        );
+        // Renderiza a cena 3D para o FBO
+        renderScene((int)canvasSize.x, (int)canvasSize.y);
 
-        dl->AddCircle(
-            ImVec2(pos.x + size.x * 0.5f, pos.y + size.y * 0.5f),
-            50.0f,
-            IM_COL32(220, 100, 100, 255),
-            32,
-            3.0f
+        // Desenha a textura resultante no ImGui
+        // Nota: UV (0,1) e (1,0) para inverter o eixo Y do OpenGL
+        ImGui::Image(
+            (ImTextureID)(intptr_t)fboTexture, 
+            canvasSize, 
+            ImVec2(0, 1), 
+            ImVec2(1, 0)
         );
     }
 };

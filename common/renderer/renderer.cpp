@@ -1,13 +1,14 @@
+#include <GL/glew.h> 
+
 #include "renderer.hpp"
 #include "input.h"
 
 #include <GLFW/glfw3.h>
+#include <GL/glu.h>
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
-
-// ── OpenGL ────────────────────────────────────────────────────────────────
 #include <imgui_impl_opengl3.h>
-#include <GL/glu.h>
 
 #include <chrono>
 #include <iostream>
@@ -36,6 +37,12 @@ void Renderer::initGLFW(const int w, const int h, const std::string& t) {
         throw std::runtime_error("Erro ao criar janela");
 
     glfwMakeContextCurrent(m_window);
+
+    glewExperimental = GL_TRUE; 
+    if (glewInit() != GLEW_OK) {
+        throw std::runtime_error("Erro ao iniciar GLEW");
+    }
+
     glfwSwapInterval(1);
     glViewport(0, 0, w, h);
 

@@ -157,12 +157,12 @@ T dot(const ArithmeticVector<T, N>& lhs, const ArithmeticVector<T, N>& rhs) {
 /* ================= PRODUTO VETORIAL ================= */
 
 template <Arithmetic T, std::size_t N> requires (N == 2)
-T cross(const ArithmeticVector<T, N>& a, const ArithmeticVector<T, N>& b) {
+T cross2(const ArithmeticVector<T, 2>& a, const ArithmeticVector<T, N>& b) {
     return a[0] * b[1] - a[1] * b[0];
 }
 
 template <Arithmetic T, std::size_t N> requires (N == 3)
-auto cross(const ArithmeticVector<T, N>& a, const ArithmeticVector<T, N>& b) {
+auto cross3(const ArithmeticVector<T, 3>& a, const ArithmeticVector<T, N>& b) {
     return std::array<T, 3>{
         a[1] * b[2] - a[2] * b[1],
         a[2] * b[0] - a[0] * b[2],
@@ -171,7 +171,7 @@ auto cross(const ArithmeticVector<T, N>& a, const ArithmeticVector<T, N>& b) {
 }
 
 template <Arithmetic T, std::size_t N> requires (N == 4)
-auto cross(const ArithmeticVector<T, N>& a, const ArithmeticVector<T, N>& b) {
+auto cross4(const ArithmeticVector<T, N>& a, const ArithmeticVector<T, N>& b) {
     return std::array<T, 4>{
         a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
         a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],

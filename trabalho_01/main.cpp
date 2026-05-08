@@ -1,12 +1,15 @@
 #include "renderer.hpp"
 #include "input.h"
 #include "utils/file_selector.hpp"
+#include "utils/convex_hull.hpp"
+#include "utils/obj_model.hpp"
 #include "vector.hpp"
 #include "point.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <vector>
+#include <optional>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -28,7 +31,9 @@ protected:
         height = h;
     }
 
-    void onUpdate(float) override {}
+    void onUpdate(float dt) override {
+        this->dt = dt;
+    }
 
     void onUI() override {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -73,11 +78,17 @@ private:
     int width  = 0;
     int height = 0;
 
+    float dt;
+
     float leftPanelWidth = 300.0f;
 
     FileSelector fileSelector;
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
+    std::optional<ObjModel<float, 3>> objModel = std::nullopt;
+    bool showVertices = true;
+    bool showEdges = true;
+    bool showFaces = true;
 
     GLuint fbo = 0;
     GLuint fboTexture = 0;
@@ -159,25 +170,25 @@ private:
         if (!fileSelector.GetContent().empty()) {
             objectPoints = objectPointsFromOBJ(fileSelector.GetContent().c_str());
             fileSelector.ClearContent();
+            objModel = std::nullopt;
         }
         
         fileSelector.Draw();
         
         if(!objectPoints.empty()) {
             ImGui::Separator();
-            ImGui::Text("Objetos:");
-            ImGui::Separator();
-            for (const auto& [group_name, points] : objectPoints) {
-                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "[%s]", group_name.c_str());
-                ImGui::SameLine();
-                ImGui::TextDisabled("(%zu pontos)", points.size());
-                
-                for (size_t i = 0; i < points.size(); ++i) {
-                    const auto& p = points[i];
-                    ImGui::TextWrapped("  [%zu] (%.2f, %.2f, %.2f)", i, p[0], p[1], p[2]);
+            if(objModel.has_value()) {
+                ImGui::Checkbox("Mostrar vertices", &showVertices);
+                ImGui::Checkbox("Mostrar arestas", &showEdges);
+                ImGui::Checkbox("Mostrar faces", &showFaces);
+            } else {
+                if (ImGui::Button("Convex Hull")) {
+                    std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
+                    for(auto& [name, points] : objectPoints) {
+                        meshes.push_back(std::tuple(name, computeConvexHullCGAL(points)));
+                    }
+                    objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }
-                
-                ImGui::Separator();
             }
         }
     }
@@ -226,33 +237,133 @@ private:
         
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
+
+        static float angle = 0.0f;
         gluLookAt(
-            10, 10, 10,
-            0, 0, 0,
-            0, 1, 0
+            15.0f * std::cos(angle), 10.0f, 15.0f * std::sin(angle), 
+            0.0f, 0.0f, 0.0f, 
+            0.0f, 1.0f, 0.0f
         );
+        angle += dt;
 
-        glLineWidth(2.0f);
-        glBegin(GL_LINES);
-            glColor3f(1, 0, 0); glVertex3f(0,0,0); glVertex3f(5,0,0);
-            glColor3f(0, 1, 0); glVertex3f(0,0,0); glVertex3f(0,5,0);
-            glColor3f(0, 0, 1); glVertex3f(0,0,0); glVertex3f(0,0,5);
-        glEnd();
-
-        glColor3f(0.5f, 0.5f, 0.5f);
-        glBegin(GL_LINE_LOOP); // Face de cima
-            glVertex3f(-1, 1, -1); glVertex3f(1, 1, -1);
-            glVertex3f(1, 1, 1); glVertex3f(-1, 1, 1);
-        glEnd();
-        glBegin(GL_LINE_LOOP); // Face de baixo
-            glVertex3f(-1, -1, -1); glVertex3f(1, -1, -1);
-            glVertex3f(1, -1, 1); glVertex3f(-1, -1, 1);
-        glEnd();
-
-        if (!objectPoints.empty()) {
-            glPointSize(5.0f);
+        if(objModel.has_value()) {
+            const auto& model = objModel.value();
+            
+            if(showFaces) {
+                glEnable(GL_LIGHTING);
+                glEnable(GL_LIGHT0);
+                
+                GLfloat light_pos[] = { 5.0f, 10.0f, 5.0f, 1.0f };
+                GLfloat light_ambient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+                GLfloat light_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+                GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                
+                glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+                glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+                glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+                glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+                
+                GLfloat material_ambient[] = { 0.7f, 0.5f, 0.3f, 1.0f };
+                GLfloat material_diffuse[] = { 0.8f, 0.6f, 0.4f, 1.0f };
+                GLfloat material_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+                GLfloat material_shininess[] = { 32.0f };
+                
+                glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
+                glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
+                glMaterialfv(GL_FRONT, GL_SPECULAR, material_specular);
+                glMaterialfv(GL_FRONT, GL_SHININESS, material_shininess);
+                
+                // Usar as faces do modelo
+                auto faces = model.getAllFacesAsIndices();
+                const auto& vertices = model.vertices;
+                const auto& normals = model.normals;
+                
+                glBegin(GL_TRIANGLES);
+                
+                for (const auto& face : faces) {
+                    std::size_t i0 = std::get<0>(face);
+                    std::size_t i1 = std::get<1>(face);
+                    std::size_t i2 = std::get<2>(face);
+                    
+                    // Tentar usar normals se disponíveis
+                    if (i0 < normals.size() && i1 < normals.size() && i2 < normals.size()) {
+                        const auto& n0 = normals[i0];
+                        const auto& n1 = normals[i1];
+                        const auto& n2 = normals[i2];
+                        
+                        glNormal3f(n0[0], n0[1], n0[2]);
+                        glVertex3f(vertices[i0][0], vertices[i0][1], vertices[i0][2]);
+                        
+                        glNormal3f(n1[0], n1[1], n1[2]);
+                        glVertex3f(vertices[i1][0], vertices[i1][1], vertices[i1][2]);
+                        
+                        glNormal3f(n2[0], n2[1], n2[2]);
+                        glVertex3f(vertices[i2][0], vertices[i2][1], vertices[i2][2]);
+                    } else {
+                        // Calcular normal da face se não houver normals
+                        geometry::Vec3f v0({vertices[i0][0], vertices[i0][1], vertices[i0][2]});
+                        geometry::Vec3f v1({vertices[i1][0], vertices[i1][1], vertices[i1][2]});
+                        geometry::Vec3f v2({vertices[i2][0], vertices[i2][1], vertices[i2][2]});
+                        
+                        geometry::Vec3f edge1 = v1 - v0;
+                        geometry::Vec3f edge2 = v2 - v0;
+                        geometry::Vec3f face_normal = edge1.cross3(edge2).normalized();
+                        
+                        glNormal3f(face_normal[0], face_normal[1], face_normal[2]);
+                        glVertex3f(vertices[i0][0], vertices[i0][1], vertices[i0][2]);
+                        glVertex3f(vertices[i1][0], vertices[i1][1], vertices[i1][2]);
+                        glVertex3f(vertices[i2][0], vertices[i2][1], vertices[i2][2]);
+                    }
+                }
+                
+                glEnd();
+                
+                glDisable(GL_LIGHT0);
+                glDisable(GL_LIGHTING);
+            }
+            
+            if(showEdges) {
+                glDisable(GL_LIGHTING);
+                glLineWidth(1.f);
+                glColor3f(0.0f, 1.0f, 0.0f);
+                
+                auto edges = model.getAllEdgeIndices();
+                const auto& vertices = model.vertices;
+                
+                glBegin(GL_LINES);
+                
+                for (const auto& edge : edges) {
+                    const auto& v1 = vertices[edge.first];
+                    const auto& v2 = vertices[edge.second];
+                    
+                    glVertex3f(v1[0], v1[1], v1[2]);
+                    glVertex3f(v2[0], v2[1], v2[2]);
+                }
+                
+                glEnd();
+            }
+            
+            if(showVertices) {
+                glDisable(GL_LIGHTING);
+                glPointSize(1.f);
+                glColor3f(1.0f, 0.0f, 0.0f);
+                
+                const auto& vertices = model.vertices;
+                
+                glBegin(GL_POINTS);
+                
+                for (const auto& vertex : vertices) {
+                    glVertex3f(vertex[0], vertex[1], vertex[2]);
+                }
+                
+                glEnd();
+            }
+            
+        } else if (!objectPoints.empty()) {
+            glDisable(GL_LIGHTING);
+            glPointSize(2.0f);
             glBegin(GL_POINTS);
-            glColor3f(1.0f, 0.8f, 0.0f); // Dourado
+            glColor3f(1.0f, 0.8f, 0.0f);
             for (auto& [name, points] : objectPoints) {
                 for (auto& p : points) {
                     glVertex3f(p[0], p[1], p[2]);

@@ -4,6 +4,7 @@ add_library(geometry INTERFACE
     point.hpp
     segment.hpp
     ray.hpp
+    mesh.hpp
 )
 
 target_include_directories(geometry INTERFACE

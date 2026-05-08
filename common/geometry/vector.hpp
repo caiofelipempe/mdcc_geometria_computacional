@@ -96,16 +96,24 @@ public:
 
     // Cross Product 2D (Escalar)
     template <std::size_t M = N> requires (M == 2)
-    T cross(const Vector& rhs) const {
-        return geometry::cross<T, N>(this->data, rhs.data);
+    T cross2(const Vector& rhs) const {
+        return geometry::cross2<T, 2>(this->data, rhs.data);
     }
 
     // Cross Product 3D (Vetor)
     template <std::size_t M = N> requires (M == 3)
-    Vector cross(const Vector& rhs) const {
+    Vector cross3(const Vector& rhs) const {
         Vector res;
-        res.data = geometry::cross<T, N>(this->data, rhs.data);
+        res.data = geometry::cross3<T, 3>(this->data, rhs.data);
         return res;
+    }
+
+    T sqrNorm() const {
+        return this->dot(*this);
+    }
+
+    T norm() {
+        return std::sqrt(sqrNorm());
     }
 
     // Normalização
@@ -138,10 +146,10 @@ template <Arithmetic T> using Quat = Vector<T, 4>;
 using Vec2f = Vec2<float>;
 using Vec2d = Vec2<double>;
 
-using Vec3f = Vec2<float>;
-using Vec3d = Vec2<double>;
+using Vec3f = Vec3<float>;
+using Vec3d = Vec3<double>;
 
-using Quatf = Vec2<float>;
-using Quatd = Vec2<double>;
+using Quatf = Quat<float>;
+using Quatd = Quat<double>;
 
 } // namespace geometry

@@ -37,20 +37,22 @@ private:
 public:
     Mesh() = default;
 
+    Mesh(std::vector<PointType> vertices, std::vector<TriangleIndices> faces) : vertices(vertices), faces(faces) {}
+
     /* ================= MANIPULAÇÃO DE DADOS ================= */
 
-    std::size_t add_vertex(const PointType& p) {
+    std::size_t addVertex(const PointType& p) {
         vertices.push_back(p);
         return vertices.size() - 1;
     }
 
-    void add_face(std::size_t i0, std::size_t i1, std::size_t i2) {
+    void addFace(std::size_t i0, std::size_t i1, std::size_t i2) {
         // Opcional: validação de índices em debug mode
         faces.push_back({i0, i1, i2});
     }
 
-    const std::vector<PointType>& get_vertices() const { return vertices; }
-    const std::vector<TriangleIndices>& get_faces() const { return faces; }
+    const std::vector<PointType>& getVertices() const { return vertices; }
+    const std::vector<TriangleIndices>& getFaces() const { return faces; }
 
     void clear() {
         vertices.clear();
@@ -63,10 +65,10 @@ public:
      * @brief Calcula a área total da mesh. 
      * Funciona para qualquer N >= 2 (área do triângulo no espaço N-dimensional).
      */
-    T total_area() const {
+    T totalArea() const {
         T area = 0;
         for (const auto& face : faces) {
-            area += face_area(face);
+            area += faceArea(face);
         }
         return area;
     }
@@ -74,7 +76,7 @@ public:
     /**
      * @brief Área de uma face específica usando a fórmula de Heron ou norma do cross product.
      */
-    T face_area(const TriangleIndices& f) const {
+    T faceArea(const TriangleIndices& f) const {
         VectorType ab = vertices[f.v1] - vertices[f.v0];
         VectorType ac = vertices[f.v2] - vertices[f.v0];
         
@@ -126,7 +128,7 @@ public:
 
     /* ================= BOUNDING BOX ================= */
 
-    std::pair<PointType, PointType> bounding_box() const {
+    std::pair<PointType, PointType> boundingBox() const {
         if (vertices.empty()) return {};
 
         PointType min_p = vertices[0];

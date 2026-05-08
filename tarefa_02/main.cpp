@@ -298,7 +298,7 @@ private:
             auto add = p2 = p1;
             auto sub = p2 - p1;
             auto dot = p1.dot(p2);
-            auto cross = p1.cross(p2);
+            auto cross = p1.cross2(p2);
 
             arquivo3 << "Vec 1 :(" << p1[0] << ", " << p1[1] << ")" << std::endl;
             arquivo3 << "Vec 2 :(" << p2[0] << ", " << p2[1] << ")" << std::endl;
@@ -387,7 +387,7 @@ private:
             m_q3.vecr = m_q3.vec0 - m_q3.vec1;
             break;
         case Q3State::CROSS:
-            m_q3.prodr = m_q3.vec0.cross(m_q3.vec1);
+            m_q3.prodr = m_q3.vec0.cross2(m_q3.vec1);
             break;
         case Q3State::DOT:
             m_q3.prodr = m_q3.vec0.dot(m_q3.vec1);
@@ -397,7 +397,7 @@ private:
     }
 
     void updateQ4() {
-        m_q4.prodr = m_q4.vec0.cross(m_q4.vec1);
+        m_q4.prodr = m_q4.vec0.cross2(m_q4.vec1);
     }
 
     void updateQ5() {

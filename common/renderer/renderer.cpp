@@ -77,39 +77,41 @@ void Renderer::shutdownImGui() {
 // ─────────────────────────────────────────────────────────────────────────────
 void Renderer::run(const int w, const int h, const std::string& t) {
     initGLFW(w, h, t);
-
     initImGui();
     onInit(w, h, t);
 
     using clock = std::chrono::steady_clock;
-    constexpr double TARGET_FPS   = 60.0;
-    constexpr double FRAME_TIME   = 1.0 / TARGET_FPS;
-
-    auto last       = clock::now();
-    auto nextFrame  = last;
+    auto lastTime = clock::now();
 
     while (!glfwWindowShouldClose(m_window)) {
-        const auto now = clock::now();
-        const float dt = std::chrono::duration<float>(now - last).count();
-        last = now;
+        // 1. Cálculo do Delta Time (dt)
+        auto currentTime = clock::now();
+        float dt = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
 
+        // 2. Processamento de Eventos e Input
         glfwPollEvents();
         m_input.resetFrameData();
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 3. Update da lógica da aplicação
         onUpdate(dt);
 
+        // 4. Preparação do Frame de Renderização
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 5. Renderização da Interface (ImGui)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        onUI();
+        
+        onUI(); // Aqui dentro você chama o drawCanvas() que desenha sua cena
+        
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        // 6. Troca de buffers (O V-Sync agirá aqui devido ao glfwSwapInterval(1))
         glfwSwapBuffers(m_window);
-
-        auto sleep_until = nextFrame + std::chrono::duration<double>(FRAME_TIME);
-        std::this_thread::sleep_until(sleep_until);
     }
 
     onShutdown();

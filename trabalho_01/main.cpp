@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include "input.h"
+#include "utils/file_saver.hpp"
 #include "utils/file_selector.hpp"
 #include "utils/convex_hull.hpp"
 #include "utils/obj_model.hpp"
@@ -83,6 +84,7 @@ private:
 
     float leftPanelWidth = 300.0f;
 
+    FileSaver fileSaver;
     FileSelector fileSelector;
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
@@ -194,10 +196,16 @@ private:
         if(!objectPoints.empty()) {
             ImGui::Separator();
             if(objModel.has_value()) {
+                const auto& model = objModel.value();
+
                 ImGui::Checkbox("Mostrar pontos originais", &showOriginalPoints);
                 ImGui::Checkbox("Mostrar vertices", &showVertices);
                 ImGui::Checkbox("Mostrar arestas", &showEdges);
                 ImGui::Checkbox("Mostrar faces", &showFaces);
+
+                if (ImGui::Button("Salvar Modelo")) {
+                    fileSaver.Open();
+                }
             } else {
                 if (ImGui::Button("Convex Hull")) {
                     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
@@ -207,6 +215,11 @@ private:
                     objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }
             }
+        }
+
+        fileSaver.Draw();
+        if (fileSaver.HasSelected() && objModel.has_value()) {
+            objModel.value().save(fileSaver.GetSelectedPath());
         }
     }
 

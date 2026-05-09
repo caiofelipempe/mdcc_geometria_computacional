@@ -1,5 +1,6 @@
 add_executable(trabalho_01
     main.cpp
+    utils/file_saver.hpp
     utils/file_selector.hpp
     utils/convex_hull.hpp
     utils/obj_model.hpp

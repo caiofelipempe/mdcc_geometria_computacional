@@ -167,11 +167,11 @@ private:
     }
 
     void panelUI() {
-        if (ImGui::Button("Abrir Seletor")) {
+        if (ImGui::Button("Buscar Modelo")) {
             fileSelector.Open();
         }
         
-        if (ImGui::Button("Pontos Randômicos")) {
+        if (ImGui::Button("Gerar Pontos Randômicos")) {
                 std::random_device rd;
                 std::mt19937 gen(rd());
                 std::uniform_real_distribution<> dis(-5.0, 5.0);

@@ -10,6 +10,7 @@
 #include <imgui_internal.h>
 #include <vector>
 #include <optional>
+#include <random>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -86,6 +87,7 @@ private:
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::optional<ObjModel<float, 3>> objModel = std::nullopt;
+    bool showOriginalPoints = false;
     bool showVertices = false;
     bool showEdges = false;
     bool showFaces = true;
@@ -167,6 +169,20 @@ private:
             fileSelector.Open();
         }
         
+        if (ImGui::Button("Pontos Randômicos")) {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> dis(-5.0, 5.0);
+
+                objectPoints.clear();
+                std::vector<Point3f> points;
+                for (int i = 0; i < 50; ++i) {
+                    points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
+                }
+
+                objectPoints.emplace_back("main", points);
+        }
+        
         if (!fileSelector.GetContent().empty()) {
             objectPoints = objectPointsFromOBJ(fileSelector.GetContent().c_str());
             fileSelector.ClearContent();
@@ -178,6 +194,7 @@ private:
         if(!objectPoints.empty()) {
             ImGui::Separator();
             if(objModel.has_value()) {
+                ImGui::Checkbox("Mostrar pontos originais", &showOriginalPoints);
                 ImGui::Checkbox("Mostrar vertices", &showVertices);
                 ImGui::Checkbox("Mostrar arestas", &showEdges);
                 ImGui::Checkbox("Mostrar faces", &showFaces);
@@ -345,7 +362,7 @@ private:
             
             if(showVertices) {
                 glDisable(GL_LIGHTING);
-                glPointSize(1.f);
+                glPointSize(2.f);
                 glColor3f(1.0f, 0.0f, 0.0f);
                 
                 const auto& vertices = model.vertices;
@@ -354,6 +371,24 @@ private:
                 
                 for (const auto& vertex : vertices) {
                     glVertex3f(vertex[0], vertex[1], vertex[2]);
+                }
+                
+                glEnd();
+            }
+            
+            if(showOriginalPoints) {
+                glDisable(GL_LIGHTING);
+                glPointSize(2.f);
+                glColor3f(1.0f, 1.0f, 0.0f);
+                
+                const auto& vertices = model.vertices;
+                
+                glBegin(GL_POINTS);
+                
+                for (const auto& [name, points] : objectPoints) {
+                    for(const auto& point : points) {
+                        glVertex3f(point[0], point[1], point[2]);
+                    }
                 }
                 
                 glEnd();

@@ -177,6 +177,7 @@ private:
                 std::uniform_real_distribution<> dis(-5.0, 5.0);
 
                 objectPoints.clear();
+                objModel = std::nullopt;
                 std::vector<Point3f> points;
                 for (int i = 0; i < 50; ++i) {
                     points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));

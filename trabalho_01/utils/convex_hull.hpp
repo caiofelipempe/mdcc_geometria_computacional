@@ -33,8 +33,6 @@ geometry::Mesh3f cgal(std::vector<geometry::Point3f> points) {
     CgalPolyhedron poly;
     CGAL::convex_hull_3(cgal_points.begin(), cgal_points.end(), poly);
 
-    // Extrair vértices
-    hullVertices.clear();
     std::map<Vertex_handle, unsigned int> vertexIndex;
     unsigned int idx = 0;
     for (auto v = poly.vertices_begin(); v != poly.vertices_end(); ++v) {
@@ -56,37 +54,31 @@ geometry::Mesh3f cgal(std::vector<geometry::Point3f> points) {
     return geometry::Mesh3f(points, faces);
 }
 
-int sameSide(const std::vector<geometry::Point3f>& points, int a, int b, int c, int ignore_idx) {
-    auto edge1 = points[b] - points[a];
-    auto edge2 = points[c] - points[a];
+int sameSide(const std::vector<geometry::Point3f>& points, int a, int b, int c) {
+    auto po = points[a];
+    auto edge1 = points[b] - po;
+    auto edge2 = points[c] - po;
     auto normal = edge1.cross3(edge2);
-    
-    double ref_sign = 0;
-    
 
-    if (!(0 == a || 0 == b || 0 == c || 0 == ignore_idx)) {
-        auto to_point = points[0] - points[a];
-        auto dist = normal.dot(to_point);
+    int side = 0;
+    for (int i = 0; i < (int)points.size(); i++) {
+        if (i == a || i == b || i == c) continue;
 
-        if (fabs(dist) > 1e-9) {
-            ref_sign = (dist > 0) ? 1 : -1;
+        auto to_point = points[i] - po;
+        double dist = normal.dot(to_point);
+
+        if (std::abs(dist) > 1e-9) {
+            int current_side = (dist > 0) ? 1 : -1;
+
+            if (side == 0) {
+                side = current_side;
+            } else if (side != current_side) {
+                return 0;
+            }
         }
     }
 
-    for (int i = 1; i < points.size(); i++) {
-        if (i == a || i == b || i == c || i == ignore_idx) continue;
-        
-        auto to_point = points[i] - points[a];
-        auto dist = normal.dot(to_point);
-        
-        if (fabs(dist) > 1e-9) {
-            double sign = (dist > 0) ? 1 : -1;
-            if (sign != ref_sign) return 0;
-        }
-    }
-
-
-    return ref_sign;
+    return side;
 }
 
 geometry::Mesh3f bruteForce(std::vector<geometry::Point3f> points) {
@@ -100,11 +92,11 @@ geometry::Mesh3f bruteForce(std::vector<geometry::Point3f> points) {
     for (int i = 0; i < n-2; i++) {
         for (int j = i+1; j < n-1; j++) {
             for (int k = j+1; k < n; k++) {
-                auto ss = sameSide(points, i, j, k, -1);
-                if (ss > 0) {
-                    faces.push_back(geometry::TriangleIndices(k, j, i));
-                } else if (ss < 0) {
+                auto ss = sameSide(points, i, j, k);
+                if (ss < 0) {
                     faces.push_back(geometry::TriangleIndices(i, j, k));
+                } else if (ss > 0) {
+                    faces.push_back(geometry::TriangleIndices(k, j, i));
                 }
             }
         }

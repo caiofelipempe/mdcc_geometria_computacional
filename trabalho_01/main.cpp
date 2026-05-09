@@ -86,8 +86,8 @@ private:
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::optional<ObjModel<float, 3>> objModel = std::nullopt;
-    bool showVertices = true;
-    bool showEdges = true;
+    bool showVertices = false;
+    bool showEdges = false;
     bool showFaces = true;
 
     GLuint fbo = 0;

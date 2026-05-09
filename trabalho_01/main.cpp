@@ -185,7 +185,7 @@ private:
                 if (ImGui::Button("Convex Hull")) {
                     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
                     for(auto& [name, points] : objectPoints) {
-                        meshes.push_back(std::tuple(name, computeConvexHullCGAL(points)));
+                        meshes.push_back(std::tuple(name, convex_hull::bruteForce(points)));
                     }
                     objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }

@@ -26,6 +26,8 @@ public:
 protected:
     void onInit(int w, int h, const std::string&) override {
         onWindowResize(w, h);
+        
+        updateCamera();
     }
 
     void onWindowResize(int w, int h) override {
@@ -42,21 +44,38 @@ protected:
         mouseX = input.mouseX;
         mouseY = input.mouseY;
 
+        bool shouldUpdateCamera = false;
         if (isOncanvas(input.mouseX, input.mouseY)) {
-            cameraBoom += input.scrollOffset;
-            if(cameraBoom < 0) cameraBoom = 0;
+            if(input.scrollOffset != 0) {
+                shouldUpdateCamera = true;
 
-            holdingMouseBtn0OnCanvas = input.mouseButtons[0];
-        } else {
-            if (!input.mouseButtons[0]) {
-                holdingMouseBtn0OnCanvas = false;
+                camera.boom += input.scrollOffset;
+                if(camera.boom < 0) camera.boom = 0;
             }
+
+            holdingOnCanvasMouseBtn0 = input.mouseButtons[0];
+            holdingOnCanvasMouseBtn1 = input.mouseButtons[1];
+        } else {
+            if (!input.mouseButtons[0]) holdingOnCanvasMouseBtn0 = false;
+            if (!input.mouseButtons[1]) holdingOnCanvasMouseBtn1 = false;
         }
 
-        if(holdingMouseBtn0OnCanvas) {
-            cameraAngleX += mouseDx*(-0.01f);
-            cameraAngleY = std::clamp(cameraAngleY + mouseDy*0.01f, -M_PI/2, M_PI/2);
+        if(holdingOnCanvasMouseBtn0 && (mouseDx !=0 || mouseDy != 0)) {
+            shouldUpdateCamera = true;
+            
+            camera.angleX += mouseDx*(-0.01f);
+            camera.angleY = std::clamp(camera.angleY + mouseDy*0.01f, -M_PI/2, M_PI/2);
         }
+
+        if(holdingOnCanvasMouseBtn1 && (mouseDx !=0 || mouseDy != 0)) {
+            shouldUpdateCamera = true;
+            
+            camera.centerX += (mouseDx*(-0.01f)*camera.rightX - mouseDy*(-0.01f)*camera.upX)*camera.boom/4;
+            camera.centerY += (mouseDx*(-0.01f)*camera.rightY - mouseDy*(-0.01f)*camera.upY)*camera.boom/4;
+            camera.centerZ += (mouseDx*(-0.01f)*camera.rightZ - mouseDy*(-0.01f)*camera.upZ)*camera.boom/4;
+        }
+
+        if(shouldUpdateCamera) updateCamera();
     }
 
     void onUI() override {
@@ -126,11 +145,26 @@ private:
     GLuint rbo = 0;
     ImVec2 canvasSize = {0, 0};
     ImVec2 canvasOrigin = {0, 0};
-    bool holdingMouseBtn0OnCanvas = false;
+    bool holdingOnCanvasMouseBtn0 = false;
+    bool holdingOnCanvasMouseBtn1 = false;
 
-    float cameraBoom = 15;
-    float cameraAngleX = 0;
-    float cameraAngleY = 0;
+    struct LookAt {
+        float boom = 15;
+        float angleX = 0;
+        float angleY = 0;
+        GLdouble centerX = 0;
+        GLdouble centerY = 0;
+        GLdouble centerZ = 0;
+        GLdouble forwardX = 0;
+        GLdouble forwardY = 0;
+        GLdouble forwardZ = 0;
+        GLdouble upX = 0;
+        GLdouble upY = 0;
+        GLdouble upZ = 0;
+        GLdouble rightX = 0;
+        GLdouble rightY = 0;
+        GLdouble rightZ = 0;
+    } camera;
 
 private:
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPointsFromOBJ(const std::string& conteudo) {
@@ -181,6 +215,25 @@ private:
         
         return objetos;
     }
+
+    void updateCamera() {
+        float cosY = std::cos(camera.angleY);
+        float sinY = std::sin(camera.angleY);
+        float cosX = std::cos(camera.angleX);
+        float sinX = std::sin(camera.angleX);
+
+        camera.forwardX = cosY * sinX;
+        camera.forwardY = sinY;
+        camera.forwardZ = cosY * cosX;
+
+        camera.upX = -sinY * sinX;
+        camera.upY =  cosY;
+        camera.upZ = -sinY * cosX;
+
+        camera.rightX = cosX;
+        camera.rightY = 0.0f;
+        camera.rightZ = -sinX;
+}
 
     void drawVerticalSplitter(float& leftWidth, float minLeft, float minRight) {
         ImGui::SameLine();
@@ -302,14 +355,37 @@ private:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        float posX = cameraBoom * std::cos(cameraAngleY) * std::sin(cameraAngleX);
-        float posY = cameraBoom * std::sin(cameraAngleY);
-        float posZ = cameraBoom * std::cos(cameraAngleY) * std::cos(cameraAngleX);
+
         gluLookAt(
-            posX, posY, posZ, 
-            0.0f, 0.0f, 0.0f, 
-            0.0f, 1.0f, 0.0f
+            camera.centerX + camera.forwardX * camera.boom, 
+            camera.centerY + camera.forwardY * camera.boom, 
+            camera.centerZ + camera.forwardZ * camera.boom,
+            
+            camera.centerX, 
+            camera.centerY, 
+            camera.centerZ, 
+            
+            camera.upX, 
+            camera.upY, 
+            camera.upZ
         );
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE); // Importante para transparência não bugar
+
+        glPushMatrix();
+            glTranslatef(camera.centerX, camera.centerY, camera.centerZ);
+            
+            // O raio baseado no boom como você pediu anteriormente
+            float radius = camera.boom * 0.008f; 
+            
+            // Chamamos a função personalizada passando os dados da câmera
+            drawCompassFresnelSphere(radius, 32, 32, camera);
+        glPopMatrix();
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+
 
         if(objModel.has_value()) {
             const auto& model = objModel.value();
@@ -480,6 +556,102 @@ private:
             ImVec2(0, 1), 
             ImVec2(1, 0)
         );
+    }
+
+    // Função auxiliar para calcular a cor baseada na orientação da normal
+    void getColorForNormal(float nx, float ny, float nz, float maxOpacity, float* r, float* g, float* b, float* a) {
+        // A normal (nx, ny, nz) nos diz para onde o vértice está apontando.
+        // Usamos abs() para que a cor apareça tanto no lado positivo quanto negativo dos eixos,
+        // ou apenas std::max(0.0f, n) se quiser a cor apenas no semi-eixo positivo.
+        
+        // semi-eixos positivos:
+        float redIntensity   = std::max(0.0f, ny); // Cima (+Y)
+        float greenIntensity = std::max(0.0f, nx); // Direita (+X)
+        float blueIntensity  = std::max(0.0f, nz); // Frente (+Z)
+        
+        //semi-eixos negativos (opcional, para diferenciar):
+        float cyanIntensity    = std::max(0.0f, -ny); // Baixo (-Y)
+        float magentaIntensity = std::max(0.0f, -nx); // Esquerda (-X)
+        float yellowIntensity  = std::max(0.0f, -nz); // Trás (-Z)
+
+        // Mistura as cores.
+        // Se estiver exatamente no semi-eixo positivo, teremos RGB puro.
+        *r = redIntensity;
+        *g = greenIntensity;
+        *b = blueIntensity;
+        
+        // Adiciona as cores negativas para completar a bússola (opcional)
+        // Se preferir que os lados negativos fiquem pretos/neutros, comente as linhas abaixo:
+        *r += (magentaIntensity * 0.2f + yellowIntensity * 0.2f); // Esquerda e Trás dão uma nuance
+        *g += (cyanIntensity * 0.2f + yellowIntensity * 0.2f);
+        *b += (cyanIntensity * 0.2f + magentaIntensity * 0.2f);
+
+        // Normaliza a cor para garantir que não ultrapasse 1.0 (RGB)
+        float maxCol = std::max({*r, *g, *b, 1.0f});
+        *r /= maxCol; *g /= maxCol; *b /= maxCol;
+    }
+
+    void drawCompassFresnelSphere(float radius, int slices, int stacks, const LookAt& camera) {
+        // Vetor que aponta da esfera para a câmera (normalizado)
+        float dirX = camera.forwardX;
+        float dirY = camera.forwardY;
+        float dirZ = camera.forwardZ;
+
+        for (int i = 0; i < stacks; ++i) {
+            float lat0 = 3.14159f * (-0.5f + (float)i / stacks);
+            float z0 = std::sin(lat0);
+            float zr0 = std::cos(lat0);
+
+            float lat1 = 3.14159f * (-0.5f + (float)(i + 1) / stacks);
+            float z1 = std::sin(lat1);
+            float zr1 = std::cos(lat1);
+
+            glBegin(GL_QUAD_STRIP);
+            for (int j = 0; j <= slices; ++j) {
+                float lng = 2.0f * 3.14159f * (float)j / slices;
+                float x = std::cos(lng);
+                float y = std::sin(lng);
+
+                // ─────────────────────────────────────────────────────────────
+                // Vértice 1 (Anel Superior do Strip)
+                // ─────────────────────────────────────────────────────────────
+                float nx1 = x * zr1;
+                float ny1 = y * zr1;
+                float nz1 = z1;
+                
+                // 1. Cálculo da Transparência (Fresnel)
+                // Mantemos o centro transparente e as bordas opacas
+                float dot1 = (nx1 * dirX + ny1 * dirY + nz1 * dirZ);
+                float alphaFresnel1 = std::pow(1.0f - std::abs(dot1), 2.0f);
+                
+                // 2. Cálculo da Cor Baseada na Normal (Bússola)
+                float r1, g1, b1, a1;
+                float maxAlpha = 0.6f; // Opacidade máxima na borda
+                getColorForNormal(nx1, ny1, nz1, maxAlpha, &r1, &g1, &b1, &a1);
+                
+                glColor4f(r1, g1, b1, alphaFresnel1 * maxAlpha);
+                glVertex3f(nx1 * radius, ny1 * radius, nz1 * radius);
+
+                // ─────────────────────────────────────────────────────────────
+                // Vértice 2 (Anel Inferior do Strip)
+                // ─────────────────────────────────────────────────────────────
+                float nx2 = x * zr0;
+                float ny2 = y * zr0;
+                float nz2 = z0;
+                
+                // 1. Cálculo da Transparência (Fresnel)
+                float dot2 = (nx2 * dirX + ny2 * dirY + nz2 * dirZ);
+                float alphaFresnel2 = std::pow(1.0f - std::abs(dot2), 2.0f);
+
+                // 2. Cálculo da Cor Baseada na Normal (Bússola)
+                float r2, g2, b2, a2;
+                getColorForNormal(nx2, ny2, nz2, maxAlpha, &r2, &g2, &b2, &a2);
+                
+                glColor4f(r2, g2, b2, alphaFresnel2 * maxAlpha);
+                glVertex3f(nx2 * radius, ny2 * radius, nz2 * radius);
+            }
+            glEnd();
+        }
     }
 
     bool isOncanvas(double x, double y) {

@@ -54,7 +54,7 @@ protected:
         }
 
         if(holdingMouseBtn0OnCanvas) {
-            cameraAngleX += mouseDx*0.01f;
+            cameraAngleX += mouseDx*(-0.01f);
             cameraAngleY = std::clamp(cameraAngleY + mouseDy*0.01f, -M_PI/2, M_PI/2);
         }
     }
@@ -302,8 +302,11 @@ private:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
+        float posX = cameraBoom * std::cos(cameraAngleY) * std::sin(cameraAngleX);
+        float posY = cameraBoom * std::sin(cameraAngleY);
+        float posZ = cameraBoom * std::cos(cameraAngleY) * std::cos(cameraAngleX);
         gluLookAt(
-            cameraBoom * std::cos(cameraAngleX), cameraBoom * std::sin(cameraAngleY), cameraBoom * std::sin(cameraAngleX), 
+            posX, posY, posZ, 
             0.0f, 0.0f, 0.0f, 
             0.0f, 1.0f, 0.0f
         );

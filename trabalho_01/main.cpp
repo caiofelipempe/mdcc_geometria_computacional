@@ -47,12 +47,7 @@ protected:
 
         bool shouldUpdateCamera = false;
 
-        // ─────────────────────────────────────────────────────────────────────────────
-        // Lógica condicional ao FOCO no Canvas
-        // ─────────────────────────────────────────────────────────────────────────────
         if (isOncanvas(input.mouseX, input.mouseY)) {
-            
-            // 1. Movimentação WASD (Apenas se o mouse estiver no Canvas)
             float moveSpeed = 5.0f * dt * (camera.boom * 0.1f + 1.0f);
 
             if (input.keys[GLFW_KEY_W]) {
@@ -80,10 +75,8 @@ protected:
                 shouldUpdateCamera = true;
             }
 
-            // 2. Zoom via Scroll
             if (input.scrollOffset != 0) {
                 shouldUpdateCamera = true;
-                // Subtrair o offset faz o "scroll para cima" aproximar
                 camera.boom -= input.scrollOffset * (camera.boom * 0.1f + 0.2f);
                 if (camera.boom < 0.1f) camera.boom = 0.1f;
             }
@@ -92,14 +85,10 @@ protected:
             holdingOnCanvasMouseBtn1 = input.mouseButtons[1];
 
         } else {
-            // Se o mouse saiu do canvas, soltamos as "travas" de clique
             if (!input.mouseButtons[0]) holdingOnCanvasMouseBtn0 = false;
             if (!input.mouseButtons[1]) holdingOnCanvasMouseBtn1 = false;
         }
 
-        // ─────────────────────────────────────────────────────────────────────────────
-        // Rotação e Pan (mantidos fora do if principal para permitir arrastar para fora)
-        // ─────────────────────────────────────────────────────────────────────────────
         if (holdingOnCanvasMouseBtn0 && (mouseDx != 0 || mouseDy != 0)) {
             shouldUpdateCamera = true;
             camera.angleX += mouseDx * (-0.005f);
@@ -297,18 +286,18 @@ private:
         }
         
         if (ImGui::Button("Gerar Pontos Randômicos")) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_real_distribution<> dis(-5.0, 5.0);
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(-5.0, 5.0);
 
-                objectPoints.clear();
-                objModel = std::nullopt;
-                std::vector<Point3f> points;
-                for (int i = 0; i < 100; ++i) {
-                    points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
-                }
+            objectPoints.clear();
+            objModel = std::nullopt;
+            std::vector<Point3f> points;
+            for (int i = 0; i < 100; ++i) {
+                points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
+            }
 
-                objectPoints.emplace_back("main", points);
+            objectPoints.emplace_back("main", points);
         }
         
         if (!fileSelector.GetContent().empty()) {
@@ -321,6 +310,41 @@ private:
         
         if(!objectPoints.empty()) {
             ImGui::Separator();
+            
+            // --- CONTROLE DE CAMERA ---
+            if (ImGui::CollapsingHeader("Controle de Câmera", ImGuiTreeNodeFlags_DefaultOpen)) {
+                bool changed = false;
+
+                // Boom (Distância)
+                if (ImGui::DragFloat("Distância (Boom)", &camera.boom, 0.1f, 0.1f, 1000.0f)) changed = true;
+                
+                // Ângulos de Rotação
+                if (ImGui::SliderAngle("Ângulo X", &camera.angleX)) changed = true;
+                if (ImGui::SliderAngle("Ângulo Y", &camera.angleY, -89.0f, 89.0f)) changed = true;
+
+                ImGui::Separator();
+                ImGui::Text("Centro do Alvo:");
+                
+                // Posição do Centro (Target)
+                // Nota: Usando DragFloat porque ImGui não tem DragDouble nativo simples sem flags específicas
+                float cX = (float)camera.centerX;
+                float cY = (float)camera.centerY;
+                float cZ = (float)camera.centerZ;
+
+                if (ImGui::DragFloat("X", &cX, 0.1f)) { camera.centerX = cX; changed = true; }
+                if (ImGui::DragFloat("Y", &cY, 0.1f)) { camera.centerY = cY; changed = true; }
+                if (ImGui::DragFloat("Z", &cZ, 0.1f)) { camera.centerZ = cZ; changed = true; }
+
+                if (ImGui::Button("Resetar Câmera")) {
+                    camera.centerX = 0; camera.centerY = 0; camera.centerZ = 0;
+                    camera.angleX = 0; camera.angleY = 0; camera.boom = 15;
+                    changed = true;
+                }
+
+                if (changed) updateCamera();
+            }
+            ImGui::Separator();
+
             if(objModel.has_value()) {
                 const auto& model = objModel.value();
 

@@ -39,43 +39,82 @@ protected:
         auto& input = this->input();
         this->dt = dt;
 
+        // Atualiza posição do mouse
         mouseDx = input.mouseX - mouseX;
         mouseDy = input.mouseY - mouseY;
         mouseX = input.mouseX;
         mouseY = input.mouseY;
 
         bool shouldUpdateCamera = false;
-        if (isOncanvas(input.mouseX, input.mouseY)) {
-            if(input.scrollOffset != 0) {
-                shouldUpdateCamera = true;
 
-                camera.boom += input.scrollOffset;
-                if(camera.boom < 0) camera.boom = 0;
+        // ─────────────────────────────────────────────────────────────────────────────
+        // Lógica condicional ao FOCO no Canvas
+        // ─────────────────────────────────────────────────────────────────────────────
+        if (isOncanvas(input.mouseX, input.mouseY)) {
+            
+            // 1. Movimentação WASD (Apenas se o mouse estiver no Canvas)
+            float moveSpeed = 5.0f * dt * (camera.boom * 0.1f + 1.0f);
+
+            if (input.keys[GLFW_KEY_W]) {
+                camera.centerX -= camera.forwardX * moveSpeed;
+                camera.centerY -= camera.forwardY * moveSpeed;
+                camera.centerZ -= camera.forwardZ * moveSpeed;
+                shouldUpdateCamera = true;
+            }
+            if (input.keys[GLFW_KEY_S]) {
+                camera.centerX += camera.forwardX * moveSpeed;
+                camera.centerY += camera.forwardY * moveSpeed;
+                camera.centerZ += camera.forwardZ * moveSpeed;
+                shouldUpdateCamera = true;
+            }
+            if (input.keys[GLFW_KEY_A]) {
+                camera.centerX -= camera.rightX * moveSpeed;
+                camera.centerY -= camera.rightY * moveSpeed;
+                camera.centerZ -= camera.rightZ * moveSpeed;
+                shouldUpdateCamera = true;
+            }
+            if (input.keys[GLFW_KEY_D]) {
+                camera.centerX += camera.rightX * moveSpeed;
+                camera.centerY += camera.rightY * moveSpeed;
+                camera.centerZ += camera.rightZ * moveSpeed;
+                shouldUpdateCamera = true;
+            }
+
+            // 2. Zoom via Scroll
+            if (input.scrollOffset != 0) {
+                shouldUpdateCamera = true;
+                // Subtrair o offset faz o "scroll para cima" aproximar
+                camera.boom -= input.scrollOffset * (camera.boom * 0.1f + 0.2f);
+                if (camera.boom < 0.1f) camera.boom = 0.1f;
             }
 
             holdingOnCanvasMouseBtn0 = input.mouseButtons[0];
             holdingOnCanvasMouseBtn1 = input.mouseButtons[1];
+
         } else {
+            // Se o mouse saiu do canvas, soltamos as "travas" de clique
             if (!input.mouseButtons[0]) holdingOnCanvasMouseBtn0 = false;
             if (!input.mouseButtons[1]) holdingOnCanvasMouseBtn1 = false;
         }
 
-        if(holdingOnCanvasMouseBtn0 && (mouseDx !=0 || mouseDy != 0)) {
+        // ─────────────────────────────────────────────────────────────────────────────
+        // Rotação e Pan (mantidos fora do if principal para permitir arrastar para fora)
+        // ─────────────────────────────────────────────────────────────────────────────
+        if (holdingOnCanvasMouseBtn0 && (mouseDx != 0 || mouseDy != 0)) {
             shouldUpdateCamera = true;
-            
-            camera.angleX += mouseDx*(-0.01f);
-            camera.angleY = std::clamp(camera.angleY + mouseDy*0.01f, -M_PI/2, M_PI/2);
+            camera.angleX += mouseDx * (-0.005f);
+            camera.angleY = std::clamp(camera.angleY + (float)mouseDy * 0.005f, (float)-M_PI/2.1f, (float)M_PI/2.1f);
         }
 
-        if(holdingOnCanvasMouseBtn1 && (mouseDx !=0 || mouseDy != 0)) {
+        if (holdingOnCanvasMouseBtn1 && (mouseDx != 0 || mouseDy != 0)) {
             shouldUpdateCamera = true;
-            
-            camera.centerX += (mouseDx*(-0.01f)*camera.rightX - mouseDy*(-0.01f)*camera.upX)*camera.boom/4;
-            camera.centerY += (mouseDx*(-0.01f)*camera.rightY - mouseDy*(-0.01f)*camera.upY)*camera.boom/4;
-            camera.centerZ += (mouseDx*(-0.01f)*camera.rightZ - mouseDy*(-0.01f)*camera.upZ)*camera.boom/4;
+            float panSpeed = camera.boom * 0.001f;
+            camera.centerX += (mouseDx * -panSpeed * camera.rightX + mouseDy * panSpeed * camera.upX);
+            camera.centerY += (mouseDx * -panSpeed * camera.rightY + mouseDy * panSpeed * camera.upY);
+            camera.centerZ += (mouseDx * -panSpeed * camera.rightZ + mouseDy * panSpeed * camera.upZ);
         }
 
-        if(shouldUpdateCamera) updateCamera();
+        if (shouldUpdateCamera) updateCamera();
     }
 
     void onUI() override {

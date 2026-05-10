@@ -432,23 +432,6 @@ private:
             camera.upY, 
             camera.upZ
         );
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE); // Importante para transparência não bugar
-
-        glPushMatrix();
-            glTranslatef(camera.centerX, camera.centerY, camera.centerZ);
-            
-            // O raio baseado no boom como você pediu anteriormente
-            float radius = camera.boom * 0.008f; 
-            
-            // Chamamos a função personalizada passando os dados da câmera
-            drawCompassFresnelSphere(radius, 32, 32, camera);
-        glPopMatrix();
-
-        glDepthMask(GL_TRUE);
-        glDisable(GL_BLEND);
-
 
         if(objModel.has_value()) {
             const auto& model = objModel.value();
@@ -593,6 +576,24 @@ private:
             }
             glEnd();
         }
+
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE); // Importante para transparência não bugar
+
+        glPushMatrix();
+            glTranslatef(camera.centerX, camera.centerY, camera.centerZ);
+            
+            // O raio baseado no boom como você pediu anteriormente
+            float radius = camera.boom * 0.008f; 
+            
+            // Chamamos a função personalizada passando os dados da câmera
+            drawCompassFresnelSphere(radius, 32, 32, camera);
+        glPopMatrix();
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glPopAttrib();

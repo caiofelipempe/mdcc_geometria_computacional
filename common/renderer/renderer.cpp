@@ -91,7 +91,7 @@ void Renderer::run(const int w, const int h, const std::string& t) {
 
         // 2. Processamento de Eventos e Input
         glfwPollEvents();
-        m_input.resetFrameData();
+        //m_input.resetFrameData();
 
         // 3. Update da lógica da aplicação
         onUpdate(dt);
@@ -112,6 +112,8 @@ void Renderer::run(const int w, const int h, const std::string& t) {
 
         // 6. Troca de buffers (O V-Sync agirá aqui devido ao glfwSwapInterval(1))
         glfwSwapBuffers(m_window);
+
+        m_input.resetFrameData();
     }
 
     onShutdown();

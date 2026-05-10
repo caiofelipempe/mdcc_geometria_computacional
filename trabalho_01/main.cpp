@@ -34,7 +34,29 @@ protected:
     }
 
     void onUpdate(float dt) override {
+        auto& input = this->input();
         this->dt = dt;
+
+        mouseDx = input.mouseX - mouseX;
+        mouseDy = input.mouseY - mouseY;
+        mouseX = input.mouseX;
+        mouseY = input.mouseY;
+
+        if (isOncanvas(input.mouseX, input.mouseY)) {
+            cameraBoom += input.scrollOffset;
+            if(cameraBoom < 0) cameraBoom = 0;
+
+            holdingMouseBtn0OnCanvas = input.mouseButtons[0];
+        } else {
+            if (!input.mouseButtons[0]) {
+                holdingMouseBtn0OnCanvas = false;
+            }
+        }
+
+        if(holdingMouseBtn0OnCanvas) {
+            cameraAngleX += mouseDx*0.01f;
+            cameraAngleY = std::clamp(cameraAngleY + mouseDy*0.01f, -M_PI/2, M_PI/2);
+        }
     }
 
     void onUI() override {
@@ -82,6 +104,11 @@ private:
 
     float dt;
 
+    double mouseX{0.0};
+    double mouseY{0.0};
+    double mouseDx{0.0};
+    double mouseDy{0.0};
+
     float leftPanelWidth = 300.0f;
 
     FileSaver fileSaver;
@@ -98,6 +125,12 @@ private:
     GLuint fboTexture = 0;
     GLuint rbo = 0;
     ImVec2 canvasSize = {0, 0};
+    ImVec2 canvasOrigin = {0, 0};
+    bool holdingMouseBtn0OnCanvas = false;
+
+    float cameraBoom = 15;
+    float cameraAngleX = 0;
+    float cameraAngleY = 0;
 
 private:
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPointsFromOBJ(const std::string& conteudo) {
@@ -269,13 +302,11 @@ private:
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        static float angle = 0.0f;
         gluLookAt(
-            15.0f * std::cos(angle), 10.0f, 15.0f * std::sin(angle), 
+            cameraBoom * std::cos(cameraAngleX), cameraBoom * std::sin(cameraAngleY), cameraBoom * std::sin(cameraAngleX), 
             0.0f, 0.0f, 0.0f, 
             0.0f, 1.0f, 0.0f
         );
-        angle += dt;
 
         if(objModel.has_value()) {
             const auto& model = objModel.value();
@@ -426,6 +457,9 @@ private:
     }
 
     void drawCanvas() {
+        ImVec2 currentOrigin = ImGui::GetCursorScreenPos();
+        this->canvasOrigin = currentOrigin;
+
         ImVec2 currentSize = ImGui::GetContentRegionAvail();
 
         if (currentSize.x < 1.0f || currentSize.y < 1.0f) return;
@@ -443,6 +477,10 @@ private:
             ImVec2(0, 1), 
             ImVec2(1, 0)
         );
+    }
+
+    bool isOncanvas(double x, double y) {
+        return x > canvasOrigin.x && x < canvasOrigin.x + canvasSize.x && y > canvasOrigin.y&& y < canvasOrigin.y + canvasSize.y;
     }
 };
 

@@ -23,6 +23,7 @@ protected:
 
 private:
     void initGLFW(int w, int h, const std::string& t);
+    void setCallbacks();
     void initImGui();
     void shutdownImGui();
 

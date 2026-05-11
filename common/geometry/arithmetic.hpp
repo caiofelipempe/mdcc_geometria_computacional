@@ -130,7 +130,46 @@ auto cross(const ArithmeticVector<T, 3>& a, const ArithmeticVector<T, 3>& b) {
     return std::array<T, 3>{ a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0] };
 }
 
-/* ================= ROTAÇÕES OTIMIZADAS ================= */
+/* ================= MÉTRICAS E NORMALIZAÇÃO OTIMIZADAS ================= */
+
+template <Arithmetic T, std::size_t N>
+T sqrLength(const ArithmeticVector<T, N>& v) {
+    return dot<T, N>(v, v);
+}
+
+template <Arithmetic T, std::size_t N>
+T length(const ArithmeticVector<T, N>& v) {
+    return std::sqrt(sqrLength<T, N>(v));
+}
+
+template <Arithmetic T, std::size_t N>
+auto normalize(const ArithmeticVector<T, N>& v) {
+    T sql = sqrLength<T, N>(v);
+    if (sql <= T{0}) throw std::runtime_error("Cannot normalize zero vector");
+
+    if constexpr (std::is_same_v<T, float>) {
+        std::size_t n = getSize<T, N>(v);
+        auto out = makeSimilar<T, N>(v);
+        
+        float r;
+        __m128 s_sql = _mm_set_ss(sql);
+        __m128 s_rsqrt = _mm_rsqrt_ss(s_sql);
+        
+        __m128 half = _mm_set_ss(0.5f);
+        __m128 three_halves = _mm_set_ss(1.5f);
+        __m128 res = _mm_mul_ss(s_rsqrt, _mm_sub_ss(three_halves, _mm_mul_ss(half, _mm_mul_ss(s_sql, _mm_mul_ss(s_rsqrt, s_rsqrt)))));
+        _mm_store_ss(&r, res);
+
+        return mul<T, N>(v, r);
+    } 
+    else {
+
+        T invLen = static_cast<T>(1) / std::sqrt(sql);
+        return mul<T, N>(v, invLen);
+    }
+}
+
+/* ================= ROTAÇÕES ================= */
 
 template <Arithmetic T>
 auto rotateWithQuaternion(const std::array<T, 3>& v, const std::array<T, 4>& q) {
@@ -153,13 +192,29 @@ auto rotateWithQuaternion(const std::array<T, 3>& v, const std::array<T, 4>& q) 
         _mm_storeu_ps(out.data(), res);
         return out;
     }
-    // Fallback double
+
     T tx = 2 * (q[1]*v[2] - q[2]*v[1]), ty = 2 * (q[2]*v[0] - q[0]*v[2]), tz = 2 * (q[0]*v[1] - q[1]*v[0]);
     return std::array<T, 3>{
         v[0] + q[3]*tx + (q[1]*tz - q[2]*ty),
         v[1] + q[3]*ty + (q[2]*tx - q[0]*tz),
         v[2] + q[3]*tz + (q[0]*ty - q[1]*tx)
     };
+}
+
+template <Arithmetic T>
+auto rotateWithAxis(const std::array<T, 3>& v, const std::array<T, 3>& axis, T angle) {
+    T halfAngle = angle * static_cast<T>(0.5);
+    T s = std::sin(halfAngle);
+    T c = std::cos(halfAngle);
+
+    std::array<T, 4> q = {
+        axis[0] * s,
+        axis[1] * s,
+        axis[2] * s,
+        c
+    };
+
+    return geometry::rotateWithQuaternion<T>(v, q);
 }
 
 /* ================= OPERADORES ESCALARES ================= */

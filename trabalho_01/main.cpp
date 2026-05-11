@@ -494,7 +494,7 @@ private:
                         
                         geometry::Vec3f edge1 = v1 - v0;
                         geometry::Vec3f edge2 = v2 - v0;
-                        geometry::Vec3f face_normal = edge1.cross3(edge2).normalized();
+                        geometry::Vec3f face_normal = edge1.cross(edge2).normalized();
                         
                         glNormal3f(face_normal[0], face_normal[1], face_normal[2]);
                         glVertex3f(vertices[i0][0], vertices[i0][1], vertices[i0][2]);

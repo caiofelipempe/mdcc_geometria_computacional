@@ -4,6 +4,9 @@
 #include "vector.hpp"
 #include <iostream>
 #include <span>
+#include <initializer_list>
+#include <algorithm>
+#include <cmath>
 
 namespace geometry {
 
@@ -21,19 +24,25 @@ public:
 
     /* ================= CONSTRUTORES ================= */
 
-    Point() : data(makeSimilar<T, N>(data)) {}
+    Point() {
+        if constexpr (N == 0) {
+            // Dinâmico: inicia vazio
+        } else {
+            data.fill(T{0});
+        }
+    }
 
     Point(std::initializer_list<T> init) {
         if constexpr (N == 0) {
             data.assign(init.begin(), init.end());
         } else {
-            if (init.size() != N) throw std::invalid_argument("Dimensão incorreta");
+            if (init.size() != N) throw std::invalid_argument("Dimensao incorreta");
             std::copy(init.begin(), init.end(), data.begin());
         }
     }
 
     explicit Point(std::size_t size) requires (N == 0)
-        : data(size) {}
+        : data(size, T{0}) {}
 
     // Converte Vector para Point
     explicit Point(const VectorType& vec) {
@@ -42,7 +51,7 @@ public:
 
     /* ================= ACESSO ================= */
 
-    std::size_t size() const noexcept { return getSize<T, N>(data); }
+    std::size_t size() const noexcept { return geometry::getSize<T, N>(data); }
     T* data_ptr() noexcept { return data.data(); }
     const T* data_ptr() const noexcept { return data.data(); }
     
@@ -54,28 +63,32 @@ public:
     // Ponto + Vetor = Ponto (Deslocamento)
     Point operator+(const VectorType& vec) const {
         Point res;
-        res.data = geometry::add<T, N>(this->data, vec.data);
+        if constexpr (N == 0) res.data.resize(size());
+        // Uso do 'template' para resolver erro de ambiguidade do compilador
+        res.data = geometry::template operator+<T, N>(this->data, vec.data);
         return res;
     }
 
     // Ponto - Vetor = Ponto
     Point operator-(const VectorType& vec) const {
         Point res;
-        res.data = geometry::sub<T, N>(this->data, vec.data);
+        if constexpr (N == 0) res.data.resize(size());
+        res.data = geometry::template operator-<T, N>(this->data, vec.data);
         return res;
     }
 
     // Ponto - Ponto = Vetor (Diferença de posição)
     VectorType operator-(const Point& other) const {
         VectorType res;
-        res.data = geometry::sub<T, N>(this->data, other.data);
+        if constexpr (N == 0) res.data.resize(size());
+        res.data = geometry::template operator-<T, N>(this->data, other.data);
         return res;
     }
 
     /* ================= DISTÂNCIAS (Otimizadas) ================= */
 
     T squared_distance_to(const Point& other) const {
-        // Distância ao quadrado é o dot product da diferença
+        // Aproveita a implementação SIMD de subtração e produto escalar
         VectorType diff = *this - other;
         return diff.dot(diff);
     }
@@ -95,11 +108,12 @@ public:
 
     Point lerp(const Point& other, T t) const {
         Point res;
-        res.data = makeSimilar<T, N>(this->data);
-        // data[i] + (other[i] - data[i]) * t
-        for (std::size_t i = 0; i < size(); ++i) {
-            res.data[i] = data[i] + (other.data[i] - data[i]) * t;
-        }
+        if constexpr (N == 0) res.data.resize(size());
+        
+        // res = P0 + (P1 - P0) * t
+        // Aproveita os operadores sobrecarregados que já usam SIMD
+        VectorType diff = other - *this;
+        res = *this + (diff * t);
         return res;
     }
 
@@ -113,7 +127,11 @@ public:
     bool operator!=(const Point& other) const { return !(*this == other); }
 
     friend std::ostream& operator<<(std::ostream& os, const Point& p) {
-        os << "P" << p.data; // Reutiliza o ostream formatado do arithmetic
+        os << "P[";
+        for (std::size_t i = 0; i < p.size(); ++i) {
+            os << p.data[i] << (i == p.size() - 1 ? "" : ", ");
+        }
+        os << "]";
         return os;
     }
 
@@ -128,7 +146,10 @@ public:
 
 template <Arithmetic T> using Point2 = Point<T, 2>;
 template <Arithmetic T> using Point3 = Point<T, 3>;
+
 using Point2f = Point2<float>;
+using Point2d = Point2<double>;
 using Point3f = Point3<float>;
+using Point3d = Point3<double>;
 
 } // namespace geometry

@@ -147,7 +147,7 @@ float orientedArea2(const Triangle2f& tri) {
 
     Point2f ab{ b[0] - a[0], b[1] - a[1] };
     Point2f ac{ c[0] - a[0], c[1] - a[1] };
-    return ab.cross2(ac);
+    return ab.cross(ac);
 }
 
 bool onSegment(const Segment2f& s, const Point2f& p) {
@@ -241,8 +241,8 @@ std::optional<Point2f> segmentIntersectionPoint(const Segment2f& s1, const Segme
     Point2f r{ p2[0] - p[0], p2[1] - p[1] };
     Point2f s{ q2[0] - q[0], q2[1] - q[1] };
 
-    float rxs = r.cross2(s);
-    float q_pxs = Point2f{ q[0] - p[0], q[1] - p[1] }.cross2(s);
+    float rxs = r.cross(s);
+    float q_pxs = Point2f{ q[0] - p[0], q[1] - p[1] }.cross(s);
 
     if (std::abs(rxs) <= eps)
         return std::nullopt;

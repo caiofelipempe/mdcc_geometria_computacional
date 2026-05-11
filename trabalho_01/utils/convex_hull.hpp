@@ -58,7 +58,7 @@ int sameSide(const std::vector<geometry::Point3f>& points, int a, int b, int c) 
     auto po = points[a];
     auto edge1 = points[b] - po;
     auto edge2 = points[c] - po;
-    auto normal = edge1.cross3(edge2);
+    auto normal = edge1.cross(edge2);
 
     int side = 0;
     for (int i = 0; i < (int)points.size(); i++) {

@@ -190,7 +190,7 @@ public:
                 
                 geometry::Vector<T, N> edge1 = v1 - v0;
                 geometry::Vector<T, N> edge2 = v2 - v0;
-                geometry::Vector<T, N> face_normal = edge1.cross3(edge2).normalized();
+                geometry::Vector<T, N> face_normal = edge1.cross(edge2).normalized();
                 
                 if (face_normal.norm() < T{1e-6}) {
                     face_normal = geometry::Vec3({T{0}, T{0}, T{0}});

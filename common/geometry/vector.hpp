@@ -239,7 +239,46 @@ public:
     Vector rotated(const Vector<T, 4>& q) const {
 
         return Vector{
-            geometry::rotateWithQuaternion<T>(
+            geometry::rotate<T>(
+                data,
+                q.data
+            )
+        };
+    }
+
+    template<std::size_t M = N>
+    requires (M == 4)
+    [[nodiscard]]
+    Vector rotated(const Vector<T,4>& q) const {
+
+        return Vector{
+            geometry::rotate<T>(
+                data,
+                q.data
+            )
+        };
+    }
+
+    template<std::size_t M = N>
+    requires (M == 4)
+    [[nodiscard]]
+    Vector hamilton(const Vector<T,4>& q) const {
+
+        return Vector{
+            geometry::hamilton<T>(
+                data,
+                q.data
+            )
+        };
+    }
+
+    template<std::size_t M = N>
+    requires (M == 4)
+    [[nodiscard]]
+    Vector conjugated(const Vector<T,4>& q) const {
+
+        return Vector{
+            geometry::conjugate<T>(
                 data,
                 q.data
             )

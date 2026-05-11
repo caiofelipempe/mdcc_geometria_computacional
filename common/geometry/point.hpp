@@ -21,7 +21,7 @@ public:
 
     /* ================= CONSTRUTORES ================= */
 
-    Point() : data(make_similar<T, N>(data)) {}
+    Point() : data(makeSimilar<T, N>(data)) {}
 
     Point(std::initializer_list<T> init) {
         if constexpr (N == 0) {
@@ -42,7 +42,7 @@ public:
 
     /* ================= ACESSO ================= */
 
-    std::size_t size() const noexcept { return get_size<T, N>(data); }
+    std::size_t size() const noexcept { return getSize<T, N>(data); }
     T* data_ptr() noexcept { return data.data(); }
     const T* data_ptr() const noexcept { return data.data(); }
     
@@ -95,7 +95,7 @@ public:
 
     Point lerp(const Point& other, T t) const {
         Point res;
-        res.data = make_similar<T, N>(this->data);
+        res.data = makeSimilar<T, N>(this->data);
         // data[i] + (other[i] - data[i]) * t
         for (std::size_t i = 0; i < size(); ++i) {
             res.data[i] = data[i] + (other.data[i] - data[i]) * t;

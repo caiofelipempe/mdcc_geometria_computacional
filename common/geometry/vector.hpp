@@ -21,7 +21,7 @@ public:
 
     /* ================= CONSTRUTORES ================= */
 
-    Vector() : data(make_similar<T, N>(data)) {}
+    Vector() : data(makeSimilar<T, N>(data)) {}
 
     // Construtor para tamanho dinâmico (N=0)
     explicit Vector(std::size_t size) requires (N == 0)
@@ -40,7 +40,7 @@ public:
     /* ================= ACESSO E UTILITÁRIOS ================= */
 
     [[nodiscard]] std::size_t size() const noexcept {
-        return get_size<T, N>(data);
+        return getSize<T, N>(data);
     }
 
     T* data_ptr() noexcept { return data.data(); }
@@ -70,7 +70,7 @@ public:
     // Multiplicação elemento a elemento
     Vector operator*(const Vector& rhs) const {
         Vector res;
-        res.data = make_similar<T, N>(this->data);
+        res.data = makeSimilar<T, N>(this->data);
         simd::apply_op<simd::Mul>(res.data_ptr(), this->data_ptr(), rhs.data_ptr(), size());
         return res;
     }
@@ -97,14 +97,14 @@ public:
     // Cross Product 2D (Escalar)
     template <std::size_t M = N> requires (M == 2)
     T cross2(const Vector& rhs) const {
-        return geometry::cross2<T, 2>(this->data, rhs.data);
+        return geometry::cross<T, 2>(this->data, rhs.data);
     }
 
     // Cross Product 3D (Vetor)
     template <std::size_t M = N> requires (M == 3)
     Vector cross3(const Vector& rhs) const {
         Vector res;
-        res.data = geometry::cross3<T, 3>(this->data, rhs.data);
+        res.data = geometry::cross<T, 3>(this->data, rhs.data);
         return res;
     }
 

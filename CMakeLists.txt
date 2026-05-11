@@ -26,7 +26,7 @@ find_package(CGAL REQUIRED)
 # -----------------------------
 # Tarefas
 # -----------------------------
-option(BUILD_TAREFA_02 "Compilar Trabalho 02" OFF)
+option(BUILD_TAREFA_02 "Compilar Trabalho 02" ON)
 
 # -----------------------------
 # Trabalhos

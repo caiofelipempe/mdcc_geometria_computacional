@@ -34,7 +34,7 @@ struct ObjObject {
     }
 };
 
-template <geometry::Arithmetic T, std::size_t N>
+template <typename T, std::size_t N>
 class ObjModel {
 public:
     // Dados globais do arquivo

@@ -331,9 +331,6 @@ public:
             fileContent = buffer.str();
             file.close();
             
-            printf("✓ Arquivo .OBJ lido com sucesso: %s\n", fullPath.c_str());
-            printf("  Tamanho: %zu bytes\n", fileContent.size());
-            
             // Estatísticas básicas do OBJ
             int vertexCount = 0;
             int faceCount = 0;
@@ -345,10 +342,8 @@ public:
                     else if (line[0] == 'f' && line[1] == ' ') faceCount++;
                 }
             }
-            printf("  Vértices: %d, Faces: %d\n", vertexCount, faceCount);
         } else {
             fileContent = "Erro: Não foi possível ler o arquivo .OBJ!";
-            printf("✗ Erro ao ler: %s\n", fullPath.c_str());
         }
         
         isOpen = false;

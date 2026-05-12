@@ -310,6 +310,11 @@ private:
         
         if(!objectPoints.empty()) {
             ImGui::Separator();
+            if (ImGui::Button("Limpar Pontos")) {
+                objectPoints.clear();
+                objModel = std::nullopt;
+            }
+            ImGui::Separator();
             
             // --- CONTROLE DE CAMERA ---
             if (ImGui::CollapsingHeader("Controle de Câmera", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -356,14 +361,29 @@ private:
                 if (ImGui::Button("Salvar Modelo")) {
                     fileSaver.Open();
                 }
+                ImGui::Separator();
+                if (ImGui::Button("Limpar Modelo")) {
+                    objModel = std::nullopt;
+                }
+                ImGui::Separator();
             } else {
-                if (ImGui::Button("Convex Hull")) {
+                ImGui::Separator();
+                ImGui::Text("Convex Hull");
+                if (ImGui::Button("GGal")) {
+                    std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
+                    for(auto& [name, points] : objectPoints) {
+                        meshes.push_back(std::tuple(name, convex_hull::cgal(points)));
+                    }
+                    objModel = ObjModel<float, 3>::fromMeshes(meshes);
+                }
+                if (ImGui::Button("Força Bruta")) {
                     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
                     for(auto& [name, points] : objectPoints) {
                         meshes.push_back(std::tuple(name, convex_hull::bruteForce(points)));
                     }
                     objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }
+                ImGui::Separator();
             }
         }
 

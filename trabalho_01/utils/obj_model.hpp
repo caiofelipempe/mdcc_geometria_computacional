@@ -173,7 +173,7 @@ public:
                 bool operator<(const VertexNormalKey& other) const {
                     if (vertex_idx != other.vertex_idx) return vertex_idx < other.vertex_idx;
                     for (std::size_t i = 0; i < N; ++i) {
-                        if (normal[i] != other.normal[i]) return normal[i] < other.normal[i];
+                        if (std::abs(normal[i] - other.normal[i]) >  1e-6) return normal[i] < other.normal[i];
                     }
                     return false;
                 }

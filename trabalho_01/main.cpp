@@ -12,6 +12,7 @@
 #include <vector>
 #include <optional>
 #include <random>
+#include <future>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -163,7 +164,8 @@ private:
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
-    convex_hull::BruteForceStep bruteForceStep;
+    std::future<void> bruteForceFut;
+    bool bruteForceStop;
     bool showOriginalPoints = false;
     bool showVertices = false;
     bool showEdges = false;
@@ -292,8 +294,8 @@ private:
             std::uniform_real_distribution<> dis(-5.0, 5.0);
 
             objectPoints.clear();
+            stopBruteForce();
             meshes.clear();
-            bruteForceStep.stop();
             std::vector<Point3f> points;
             for (int i = 0; i < 100; ++i) {
                 points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
@@ -305,8 +307,8 @@ private:
         if (!fileSelector.GetContent().empty()) {
             objectPoints = objectPointsFromOBJ(fileSelector.GetContent().c_str());
             fileSelector.ClearContent();
+            stopBruteForce();
             meshes.clear();
-            bruteForceStep.stop();
         }
         
         fileSelector.Draw();
@@ -315,8 +317,8 @@ private:
             ImGui::Separator();
             if (ImGui::Button("Limpar Pontos")) {
                 objectPoints.clear();
+                stopBruteForce();
                 meshes.clear();
-                bruteForceStep.stop();
             }
             ImGui::Separator();
             
@@ -365,40 +367,25 @@ private:
                 }
                 ImGui::Separator();
                 if (ImGui::Button("Limpar Modelo")) {
+                    stopBruteForce();
                     meshes.clear();
-                    bruteForceStep.stop();
                 }
                 ImGui::Separator();
-
-                if (bruteForceStep.isRunning()) {
-                    bruteForceStep.step();
-                }
             } else {
                 ImGui::Separator();
 
                 ImGui::Text("Convex Hull");
                 if (ImGui::Button("GGal")) {
+                    stopBruteForce();
                     meshes.clear();
-                    bruteForceStep.stop();
                     for(auto& [name, points] : objectPoints) {
                         meshes.push_back(std::tuple(name, convex_hull::cgal(points)));
                     }
                 }
                 if (ImGui::Button("Força Bruta")) {
+                    stopBruteForce();
                     meshes.clear();
-                    bruteForceStep.stop();
-                    for (auto& [name, points] : objectPoints) {
-                        geometry::Mesh3f mesh;
-                        for (const auto& p : points) {
-                            auto _ = mesh.addVertex(p);
-                        }
-                        convex_hull::bruteForce(mesh);
-                        meshes.emplace_back(name, mesh);
-                    }
-                }
-                if (ImGui::Button("Força Bruta Animada")) {
-                    meshes.clear();
-                    bruteForceStep.stop();
+
                     for (auto& [name, points] : objectPoints) {
                         geometry::Mesh3f mesh;
                         for (const auto& p : points) {
@@ -406,8 +393,13 @@ private:
                         }
                         meshes.emplace_back(name, mesh);
                     }
-                    
-                    bruteForceStep.start(meshes);
+                    bruteForceStop = false;
+                    bruteForceFut = std::async(std::launch::async, ([this]() {
+                        for (auto &[_, mesh] : meshes) {
+                            if (bruteForceStop) return;
+                            convex_hull::bruteForce(mesh);
+                        }
+                    }));
                 }
 
                 ImGui::Separator();
@@ -586,10 +578,9 @@ private:
                 
                 glBegin(GL_POINTS);
                 
-                for (const auto& [name, mesh] : meshes) {
-                    auto vertices = mesh.getVertices();
-                    for (const auto &vertex : vertices) {
-                        glVertex3f(vertex[0], vertex[1], vertex[2]);
+                for (const auto& [name, points] : objectPoints) {
+                    for(const auto& point : points) {
+                        glVertex3f(point[0], point[1], point[2]);
                     }
                 }
                 
@@ -752,6 +743,11 @@ private:
 
     bool isOncanvas(double x, double y) {
         return x > canvasOrigin.x && x < canvasOrigin.x + canvasSize.x && y > canvasOrigin.y&& y < canvasOrigin.y + canvasSize.y;
+    }
+
+    void stopBruteForce() {
+        bruteForceStop = true;
+        if(bruteForceFut.valid()) bruteForceFut.wait();
     }
 };
 

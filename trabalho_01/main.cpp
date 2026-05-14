@@ -541,8 +541,14 @@ private:
                 glBegin(GL_POINTS);
                 
                 for (const auto& [name, mesh] : meshes) {
-                    for (const auto &vertex : mesh.getVertices()) {
-                        glVertex3f(vertex[0], vertex[1], vertex[2]);
+                    auto vertices = mesh.getVertices();
+                    for (const auto &face : mesh.getFaces()) {
+                        auto v0 = vertices[face.v0];
+                        auto v1 = vertices[face.v1];
+                        auto v2 = vertices[face.v2];
+                        glVertex3f(v0[0], v0[1], v0[2]);
+                        glVertex3f(v1[0], v1[1], v1[2]);
+                        glVertex3f(v2[0], v2[1], v2[2]);
                     }
                 }
                 

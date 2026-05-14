@@ -81,28 +81,41 @@ int sameSide(const std::vector<geometry::Point3f>& points, int a, int b, int c) 
     return side;
 }
 
-geometry::Mesh3f bruteForce(std::vector<geometry::Point3f> points) {
-    int n = points.size();
-    if (n < 4) {
-        return geometry::Mesh3f();
-    }
-    
-    std::vector<geometry::TriangleIndices> faces;
-    
-    for (int i = 0; i < n-2; i++) {
-        for (int j = i+1; j < n-1; j++) {
-            for (int k = j+1; k < n; k++) {
-                auto ss = sameSide(points, i, j, k);
+
+void bruteForce(geometry::Mesh3f& mesh) {
+    auto& points = mesh.getVertices();
+    auto& faces  = mesh.getFaces();
+
+    faces.clear();
+
+    int n = static_cast<int>(points.size());
+    if (n < 4) return;
+
+    faces.reserve(n * n);
+
+    for (int i = 0; i < n - 2; ++i) {
+        for (int j = i + 1; j < n - 1; ++j) {
+            for (int k = j + 1; k < n; ++k) {
+
+                auto e1 = points[j] - points[i];
+                auto e2 = points[k] - points[i];
+                auto normal = e1.cross(e2);
+
+                if (normal.norm() < 1e-6f)
+                    continue;
+
+                int ss = sameSide(points, i, j, k);
+
                 if (ss < 0) {
-                    faces.push_back(geometry::TriangleIndices(i, j, k));
-                } else if (ss > 0) {
-                    faces.push_back(geometry::TriangleIndices(k, j, i));
+                    faces.push_back({(size_t)i, (size_t)j, (size_t)k});
+                }
+                else if (ss > 0) {
+                    faces.push_back({(size_t)k, (size_t)j, (size_t)i});
                 }
             }
         }
     }
-    
-    return geometry::Mesh3f(points, faces);
 }
+
 
 }

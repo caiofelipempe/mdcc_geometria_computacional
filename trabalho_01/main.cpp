@@ -162,7 +162,7 @@ private:
     FileSelector fileSelector;
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
-    std::optional<ObjModel<float, 3>> objModel = std::nullopt;
+    std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
     bool showOriginalPoints = false;
     bool showVertices = false;
     bool showEdges = false;
@@ -291,7 +291,7 @@ private:
             std::uniform_real_distribution<> dis(-5.0, 5.0);
 
             objectPoints.clear();
-            objModel = std::nullopt;
+            meshes.clear();
             std::vector<Point3f> points;
             for (int i = 0; i < 100; ++i) {
                 points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
@@ -303,7 +303,7 @@ private:
         if (!fileSelector.GetContent().empty()) {
             objectPoints = objectPointsFromOBJ(fileSelector.GetContent().c_str());
             fileSelector.ClearContent();
-            objModel = std::nullopt;
+            meshes.clear();
         }
         
         fileSelector.Draw();
@@ -312,7 +312,7 @@ private:
             ImGui::Separator();
             if (ImGui::Button("Limpar Pontos")) {
                 objectPoints.clear();
-                objModel = std::nullopt;
+                meshes.clear();
             }
             ImGui::Separator();
             
@@ -350,9 +350,7 @@ private:
             }
             ImGui::Separator();
 
-            if(objModel.has_value()) {
-                const auto& model = objModel.value();
-
+            if(meshes.size() > 0) {
                 ImGui::Checkbox("Mostrar pontos originais", &showOriginalPoints);
                 ImGui::Checkbox("Mostrar vertices", &showVertices);
                 ImGui::Checkbox("Mostrar arestas", &showEdges);
@@ -363,33 +361,39 @@ private:
                 }
                 ImGui::Separator();
                 if (ImGui::Button("Limpar Modelo")) {
-                    objModel = std::nullopt;
+                    meshes.clear();
                 }
                 ImGui::Separator();
             } else {
                 ImGui::Separator();
+
                 ImGui::Text("Convex Hull");
                 if (ImGui::Button("GGal")) {
-                    std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
+                    meshes.clear();
                     for(auto& [name, points] : objectPoints) {
                         meshes.push_back(std::tuple(name, convex_hull::cgal(points)));
                     }
-                    objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }
                 if (ImGui::Button("Força Bruta")) {
-                    std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
-                    for(auto& [name, points] : objectPoints) {
-                        meshes.push_back(std::tuple(name, convex_hull::bruteForce(points)));
+                    meshes.clear();
+                    for (auto& [name, points] : objectPoints) {
+                        geometry::Mesh3f mesh;
+                        for (const auto& p : points) {
+                            mesh.addVertex(p);
+                        }
+                        convex_hull::bruteForce(mesh);
+                        meshes.emplace_back(name, mesh);
                     }
-                    objModel = ObjModel<float, 3>::fromMeshes(meshes);
                 }
+
                 ImGui::Separator();
             }
         }
 
         fileSaver.Draw();
-        if (fileSaver.HasSelected() && objModel.has_value()) {
-            objModel.value().save(fileSaver.GetSelectedPath());
+        if (fileSaver.HasSelected() && meshes.size() > 0) {
+            auto objModel = ObjModel<float, 3>::fromMeshes(meshes);
+            objModel.save(fileSaver.GetSelectedPath());
         }
     }
 
@@ -453,9 +457,7 @@ private:
             camera.upZ
         );
 
-        if(objModel.has_value()) {
-            const auto& model = objModel.value();
-            
+        if(!meshes.empty()) {
             if(showFaces) {
                 glEnable(GL_LIGHTING);
                 glEnable(GL_LIGHT0);
@@ -480,46 +482,23 @@ private:
                 glMaterialfv(GL_FRONT, GL_SPECULAR, material_specular);
                 glMaterialfv(GL_FRONT, GL_SHININESS, material_shininess);
                 
-                // Usar as faces do modelo
-                auto faces = model.getAllFacesAsIndices();
-                const auto& vertices = model.vertices;
-                const auto& normals = model.normals;
-                
                 glBegin(GL_TRIANGLES);
-                
-                for (const auto& face : faces) {
-                    std::size_t i0 = std::get<0>(face);
-                    std::size_t i1 = std::get<1>(face);
-                    std::size_t i2 = std::get<2>(face);
-                    
-                    // Tentar usar normals se disponíveis
-                    if (i0 < normals.size() && i1 < normals.size() && i2 < normals.size()) {
-                        const auto& n0 = normals[i0];
-                        const auto& n1 = normals[i1];
-                        const auto& n2 = normals[i2];
-                        
-                        glNormal3f(n0[0], n0[1], n0[2]);
-                        glVertex3f(vertices[i0][0], vertices[i0][1], vertices[i0][2]);
-                        
-                        glNormal3f(n1[0], n1[1], n1[2]);
-                        glVertex3f(vertices[i1][0], vertices[i1][1], vertices[i1][2]);
-                        
-                        glNormal3f(n2[0], n2[1], n2[2]);
-                        glVertex3f(vertices[i2][0], vertices[i2][1], vertices[i2][2]);
-                    } else {
-                        // Calcular normal da face se não houver normals
-                        geometry::Vec3f v0({vertices[i0][0], vertices[i0][1], vertices[i0][2]});
-                        geometry::Vec3f v1({vertices[i1][0], vertices[i1][1], vertices[i1][2]});
-                        geometry::Vec3f v2({vertices[i2][0], vertices[i2][1], vertices[i2][2]});
-                        
+
+                for (auto& [name, mesh] : meshes) {
+                    auto vertices = mesh.getVertices();
+                    for (auto face : mesh.getFaces()) {
+                         auto v0 = vertices[face.v0];
+                         auto v1 = vertices[face.v1];
+                         auto v2 = vertices[face.v2];
+
                         geometry::Vec3f edge1 = v1 - v0;
                         geometry::Vec3f edge2 = v2 - v0;
                         geometry::Vec3f face_normal = edge1.cross(edge2).normalized();
                         
                         glNormal3f(face_normal[0], face_normal[1], face_normal[2]);
-                        glVertex3f(vertices[i0][0], vertices[i0][1], vertices[i0][2]);
-                        glVertex3f(vertices[i1][0], vertices[i1][1], vertices[i1][2]);
-                        glVertex3f(vertices[i2][0], vertices[i2][1], vertices[i2][2]);
+                        glVertex3f(v0[0], v0[1], v0[2]);
+                        glVertex3f(v1[0], v1[1], v1[2]);
+                        glVertex3f(v2[0], v2[1], v2[2]);
                     }
                 }
                 
@@ -534,17 +513,21 @@ private:
                 glLineWidth(1.f);
                 glColor3f(0.0f, 1.0f, 0.0f);
                 
-                auto edges = model.getAllEdgeIndices();
-                const auto& vertices = model.vertices;
-                
                 glBegin(GL_LINES);
                 
-                for (const auto& edge : edges) {
-                    const auto& v1 = vertices[edge.first];
-                    const auto& v2 = vertices[edge.second];
-                    
-                    glVertex3f(v1[0], v1[1], v1[2]);
-                    glVertex3f(v2[0], v2[1], v2[2]);
+                for (const auto& [name, mesh] : meshes) {
+                    auto vertices = mesh.getVertices();
+                    for (const auto &face : mesh.getFaces()) {
+                        auto v0 = vertices[face.v0];
+                        auto v1 = vertices[face.v1];
+                        auto v2 = vertices[face.v2];
+                        glVertex3f(v0[0], v0[1], v0[2]);
+                        glVertex3f(v1[0], v1[1], v1[2]);
+                        glVertex3f(v1[0], v1[1], v1[2]);
+                        glVertex3f(v2[0], v2[1], v2[2]);
+                        glVertex3f(v2[0], v2[1], v2[2]);
+                        glVertex3f(v0[0], v0[1], v0[2]);
+                    }
                 }
                 
                 glEnd();
@@ -555,12 +538,12 @@ private:
                 glPointSize(2.f);
                 glColor3f(1.0f, 0.0f, 0.0f);
                 
-                const auto& vertices = model.vertices;
-                
                 glBegin(GL_POINTS);
                 
-                for (const auto& vertex : vertices) {
-                    glVertex3f(vertex[0], vertex[1], vertex[2]);
+                for (const auto& [name, mesh] : meshes) {
+                    for (const auto &vertex : mesh.getVertices()) {
+                        glVertex3f(vertex[0], vertex[1], vertex[2]);
+                    }
                 }
                 
                 glEnd();
@@ -570,8 +553,6 @@ private:
                 glDisable(GL_LIGHTING);
                 glPointSize(2.f);
                 glColor3f(1.0f, 1.0f, 0.0f);
-                
-                const auto& vertices = model.vertices;
                 
                 glBegin(GL_POINTS);
                 

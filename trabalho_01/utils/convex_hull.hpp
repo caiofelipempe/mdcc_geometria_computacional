@@ -82,16 +82,16 @@ int sameSide(const std::vector<geometry::Point3f>& points, int a, int b, int c) 
 }
 
 
-void bruteForce(geometry::Mesh3f& mesh) {
-    auto& points = mesh.getVertices();
+void bruteForce(geometry::Mesh3f& mesh, std::mutex &mtx) {
+    auto points = mesh.getVertices();
     auto& faces  = mesh.getFaces();
 
-    faces.clear();
-
     int n = static_cast<int>(points.size());
-    if (n < 4) return;
-
-    faces.reserve(n * n);
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        if (n < 4) return;
+        faces.reserve(n * n);
+    }
 
     for (int i = 0; i < n - 2; ++i) {
         for (int j = i + 1; j < n - 1; ++j) {
@@ -107,9 +107,11 @@ void bruteForce(geometry::Mesh3f& mesh) {
                 int ss = sameSide(points, i, j, k);
 
                 if (ss < 0) {
+                    std::unique_lock<std::mutex> lock(mtx);
                     faces.push_back({(size_t)i, (size_t)j, (size_t)k});
                 }
                 else if (ss > 0) {
+                    std::unique_lock<std::mutex> lock(mtx);
                     faces.push_back({(size_t)k, (size_t)j, (size_t)i});
                 }
             }

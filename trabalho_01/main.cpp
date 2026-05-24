@@ -13,6 +13,7 @@
 #include <optional>
 #include <random>
 #include <future>
+#include <mutex>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -108,6 +109,8 @@ protected:
     }
 
     void onUI() override {
+        std::unique_lock<std::mutex> lock_principal(meshesMutex);
+
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
@@ -144,6 +147,8 @@ protected:
         ImGui::EndChild();
 
         ImGui::End();
+        
+        meshesMutex.unlock();
     }
 
 private:
@@ -164,6 +169,7 @@ private:
 
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
+    std::mutex meshesMutex;
     std::future<void> bruteForceFut;
     bool bruteForceStop;
     bool showOriginalPoints = false;
@@ -397,7 +403,7 @@ private:
                     bruteForceFut = std::async(std::launch::async, ([this]() {
                         for (auto &[_, mesh] : meshes) {
                             if (bruteForceStop) return;
-                            convex_hull::bruteForce(mesh);
+                            convex_hull::bruteForce(mesh, meshesMutex);
                         }
                     }));
                 }
@@ -747,7 +753,10 @@ private:
 
     void stopBruteForce() {
         bruteForceStop = true;
+
+        meshesMutex.unlock();
         if(bruteForceFut.valid()) bruteForceFut.wait();
+        meshesMutex.lock();
     }
 };
 

@@ -171,7 +171,7 @@ private:
     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
     std::mutex meshesMutex;
     std::future<void> bruteForceFut;
-    bool bruteForceStop;
+    std::atomic<bool> bruteForceStop;
     bool showOriginalPoints = false;
     bool showVertices = false;
     bool showEdges = false;
@@ -303,7 +303,7 @@ private:
             stopBruteForce();
             meshes.clear();
             std::vector<Point3f> points;
-            for (int i = 0; i < 100; ++i) {
+            for (int i = 0; i < 700; ++i) {
                 points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
             }
 

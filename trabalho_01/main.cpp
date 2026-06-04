@@ -270,7 +270,7 @@ private:
         camera.rightX = cosX;
         camera.rightY = 0.0f;
         camera.rightZ = -sinX;
-}
+    }
 
     void drawVerticalSplitter(float& leftWidth, float minLeft, float minRight) {
         ImGui::SameLine();

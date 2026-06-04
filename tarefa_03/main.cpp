@@ -2,6 +2,7 @@
 #include "input.h"
 #include "vector.hpp"
 #include "point.hpp"
+#include "mesh.hpp"
 #include "utils/convex_hull.hpp"
 
 using namespace geometry;
@@ -80,6 +81,7 @@ private:
                 random10,
                 random100,
                 random1000,
+                exq2,
                 hull,
                 clear,
         } buttom_click;
@@ -95,6 +97,7 @@ private:
                 random10,
                 random100,
                 random1000,
+                exq2,
                 hull,
                 clear,
         } buttom_click;
@@ -110,6 +113,7 @@ private:
                 random10,
                 random100,
                 random1000,
+                exq2,
                 hull,
                 clear,
         } buttom_click;
@@ -119,19 +123,49 @@ private:
         std::vector<Point2f> hull;
     } q5state;
 
+    struct Q6UI {
+        enum ButtomClick {
+                none = 0,
+                hull,
+                clear,
+        } buttom_click;
+    } q6ui; 
+    struct Q6State {
+        struct Camera {
+            float boom = 15;
+            float angleX = 0;
+            float angleY = 0;
+            GLdouble centerX = 0;
+            GLdouble centerY = 0;
+            GLdouble centerZ = 0;
+            GLdouble forwardX = 0;
+            GLdouble forwardY = 0;
+            GLdouble forwardZ = 0;
+            GLdouble upX = 0;
+            GLdouble upY = 0;
+            GLdouble upZ = 0;
+            GLdouble rightX = 0;
+            GLdouble rightY = 0;
+            GLdouble rightZ = 0;
+        } camera;
+
+        const std::vector<Point3f> points {{0.f, 0.f,-5.f}, {2.f, 0.f, 0.f}, {0.f, 3.f, 0.f}, {0.f, -5.f, 0.f}, {-5.f, 0.f, 0.f}, {0.f, 5.f, 0.f}};
+        std::optional<Mesh3f> mesh;
+    } q6state;
+
 protected:
     void onInit(int w, int h, const std::string&) override {
         onWindowResize(w, h);
     }
 
-    void onUpdate(float) override {
+    void onUpdate(float dt) override {
         switch (question) {
             case 1: updateQ1(); break;
             case 2: updateQ2(); break;
             case 3: updateQ3(); break;
             case 4: updateQ4(); break;
             case 5: updateQ5(); break;
-            case 6: updateQ5(); break;
+            case 6: updateQ6(dt); break;
             default: break;
         }
     }
@@ -231,6 +265,14 @@ private:
                 }
 
             } break;
+
+            case Q3UI::ButtomClick::exq2:
+            {
+                state.polygon.clear();
+                state.hull.clear();
+
+                state.polygon = q2state.polygon;
+            } break;
             
             default:
                 break;
@@ -269,6 +311,14 @@ private:
                     state.polygon.emplace_back(Point2f({x, y}));
                 }
 
+            } break;
+
+            case Q4UI::ButtomClick::exq2:
+            {
+                state.polygon.clear();
+                state.hull.clear();
+
+                state.polygon = q2state.polygon;
             } break;
             
             default:
@@ -309,14 +359,42 @@ private:
                 }
 
             } break;
+
+            case Q5UI::ButtomClick::exq2:
+            {
+                state.polygon.clear();
+                state.hull.clear();
+
+                state.polygon = q2state.polygon;
+            } break;
             
             default:
                 break;
         }
     }
 
-    void updateQ6() {
+    void updateQ6(float dt) {
+        auto& ui = q6ui;
+        auto& state = q6state;
 
+        state.camera.angleX += 20.0f * dt;
+        
+        if (state.camera.angleX >= 360.0f) {
+            state.camera.angleX -= 360.0f;
+        }
+
+        switch (ui.buttom_click)
+        {
+            case Q6UI::ButtomClick::hull:
+                state.mesh = convex_hull::giftWrapping(state.points);
+                break;
+            case Q6UI::ButtomClick::clear:
+                state.mesh = std::nullopt;
+                break;
+            default:
+                break;
+        }
+        ui.buttom_click = Q6UI::ButtomClick::none;
     }
 
     void panelUIQ1() {
@@ -353,6 +431,9 @@ private:
         if(ImGui::Button("Random 1000")) {
             ui.buttom_click = Q3UI::ButtomClick::random1000;
         }
+        if(ImGui::Button("Exemplo da questão 2")) {
+            ui.buttom_click = Q3UI::ButtomClick::exq2;
+        }
         if(state.polygon.size() > 0){
             if(state.hull.size() > 0) {
                 if(ImGui::Button("Clear")) {
@@ -379,6 +460,9 @@ private:
         }
         if(ImGui::Button("Random 1000")) {
             ui.buttom_click = Q4UI::ButtomClick::random1000;
+        }
+        if(ImGui::Button("Exemplo da questão 2")) {
+            ui.buttom_click = Q4UI::ButtomClick::exq2;
         }
         if(state.polygon.size() > 0){
             if(state.hull.size() > 0) {
@@ -407,6 +491,9 @@ private:
         if(ImGui::Button("Random 1000")) {
             ui.buttom_click = Q5UI::ButtomClick::random1000;
         }
+        if(ImGui::Button("Exemplo da questão 2")) {
+            ui.buttom_click = Q5UI::ButtomClick::exq2;
+        }
         if(state.polygon.size() > 0){
             if(state.hull.size() > 0) {
                 if(ImGui::Button("Clear")) {
@@ -421,7 +508,19 @@ private:
     }
 
     void panelUIQ6() {
+        auto& ui = q6ui;
+        auto& state = q6state;
 
+        ui.buttom_click = Q6UI::ButtomClick::none;
+        if(state.mesh.has_value()) {
+            if(ImGui::Button("Clear")) {
+                ui.buttom_click = Q6UI::ButtomClick::clear;
+            }
+        } else {
+            if(ImGui::Button("Gift Wrapping")) {
+                ui.buttom_click = Q6UI::ButtomClick::hull;
+            }
+        }
     }
 
     void renderCanvasQ1() {
@@ -504,8 +603,64 @@ private:
         glEnd();
     }
 
-    void renderCanvasQ6() {
+    void renderCanvasQ6(int width, int height) {
+        auto& state = q6state;
+        auto& cam = q6state.camera;
 
+        glViewport(0, 0, canvasSize.x, canvasSize.y);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        
+        float aspect = (float)canvasSize.x / (float)canvasSize.y;
+        gluPerspective(45.0, aspect, 0.1, 100.0);
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        float theta = cam.angleX * (std::numbers::pi / 180.0f);
+        float phi   = cam.angleY * (std::numbers::pi / 180.0f);
+
+        float camX = cam.centerX + cam.boom * cos(phi) * sin(theta);
+        float camY = cam.centerY + cam.boom * sin(phi);
+        float camZ = cam.centerZ + cam.boom * cos(phi) * cos(theta);
+
+        gluLookAt(camX, camY, camZ, 
+                cam.centerX, cam.centerY, cam.centerZ, 
+                0.0, 1.0, 0.0);
+   
+        if(state.mesh.has_value()) {
+            auto& mesh = state.mesh.value();
+
+            glDisable(GL_LIGHTING);
+            glLineWidth(1.f);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            
+            glBegin(GL_LINES);
+            
+            auto vertices = mesh.getVertices();
+            for (const auto &face : mesh.getFaces()) {
+                auto v0 = vertices[face.v0];
+                auto v1 = vertices[face.v1];
+                auto v2 = vertices[face.v2];
+                glVertex3f(v0[0], v0[1], v0[2]);
+                glVertex3f(v1[0], v1[1], v1[2]);
+                glVertex3f(v1[0], v1[1], v1[2]);
+                glVertex3f(v2[0], v2[1], v2[2]);
+                glVertex3f(v2[0], v2[1], v2[2]);
+                glVertex3f(v0[0], v0[1], v0[2]);
+            }
+            
+            glEnd();
+        }
+
+
+        glPointSize(4.0f); 
+        glColor3f(1.0f, 1.0f, 0.0f);
+        glBegin(GL_POINTS);
+        for (const auto& p : state.points) {
+            glVertex3f(p[0], p[1], p[2]);
+        }
+        glEnd();
     }
 
     void drawVerticalSplitter(float& leftWidth, float minLeft, float minRight) {
@@ -597,7 +752,7 @@ private:
             case 3: renderCanvasQ3(); break;
             case 4: renderCanvasQ4(); break;
             case 5: renderCanvasQ5(); break;
-            case 6: renderCanvasQ6(); break;
+            case 6: renderCanvasQ6(w, h); break;
             default: break;
         }
 

@@ -2,13 +2,13 @@
 
 using namespace geometry;
 #include "point.hpp"
+#include "mesh.hpp"
 
 #include <vector>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 
-// CGAL (somente se for usar depois)
 #include <CGAL/Simple_cartesian.h>
 
 typedef CGAL::Simple_cartesian<double> K;
@@ -28,7 +28,6 @@ float dist2(const Point2f& a, const Point2f& b) {
     return dx * dx + dy * dy;
 }
 
-// distância (área * 2) de P à linha AB
 float distance_line(const Point2f& A, const Point2f& B, const Point2f& P) {
     return std::abs(cross(A, B, P));
 }
@@ -75,7 +74,7 @@ std::vector<Point2f> graham(std::vector<Point2f> points) {
     return hull;
 }
 
-// ================= JARVIS (GIFT WRAPPING) =================
+// ================= JARVIS =================
 
 std::vector<Point2f> jarvis(const std::vector<Point2f>& points) {
     int n = points.size();
@@ -166,10 +165,8 @@ std::vector<Point2f> quickhull(const std::vector<Point2f>& points) {
     quickhull_rec(points, points[min_x], points[max_x], 1, hull);
     quickhull_rec(points, points[min_x], points[max_x], -1, hull);
 
-    // adicionar último ponto extremo
     hull.push_back(points[max_x]);
 
-    // remover duplicados
     std::sort(hull.begin(), hull.end(),
         [](const Point2f& a, const Point2f& b) {
             if (a[0] != b[0]) return a[0] < b[0];
@@ -186,7 +183,6 @@ std::vector<Point2f> quickhull(const std::vector<Point2f>& points) {
 
 // ================= MERGEHULL =================
 
-// orientação
 int orientation(const Point2f& a, const Point2f& b, const Point2f& c) {
     float val = cross(a, b, c);
     if (val > 0) return 1;   // CCW
@@ -194,7 +190,6 @@ int orientation(const Point2f& a, const Point2f& b, const Point2f& c) {
     return 0;
 }
 
-// merge de dois hulls convexos (ambos CCW)
 std::vector<Point2f> merge_hulls(
     const std::vector<Point2f>& left,
     const std::vector<Point2f>& right) {
@@ -202,17 +197,14 @@ std::vector<Point2f> merge_hulls(
     int n1 = left.size();
     int n2 = right.size();
 
-    // ponto mais à direita do left
     int i = 0;
     for (int k = 1; k < n1; k++)
         if (left[k][0] > left[i][0]) i = k;
 
-    // ponto mais à esquerda do right
     int j = 0;
     for (int k = 1; k < n2; k++)
         if (right[k][0] < right[j][0]) j = k;
 
-    // ================= TAMGENTE SUPERIOR =================
     int done = 0;
     int i_up = i, j_up = j;
 
@@ -227,7 +219,6 @@ std::vector<Point2f> merge_hulls(
         }
     }
 
-    // ================= TAMGENTE INFERIOR =================
     done = 0;
     int i_low = i, j_low = j;
 
@@ -242,10 +233,8 @@ std::vector<Point2f> merge_hulls(
         }
     }
 
-    // ================= CONSTRUIR HULL FINAL =================
     std::vector<Point2f> hull;
 
-    // parte esquerda
     int k = i_up;
     hull.push_back(left[k]);
     while (k != i_low) {
@@ -253,7 +242,6 @@ std::vector<Point2f> merge_hulls(
         hull.push_back(left[k]);
     }
 
-    // parte direita
     k = j_low;
     hull.push_back(right[k]);
     while (k != j_up) {
@@ -264,12 +252,11 @@ std::vector<Point2f> merge_hulls(
     return hull;
 }
 
-// função recursiva
 std::vector<Point2f> mergehull_rec(std::vector<Point2f>& pts, int l, int r) {
     if (r - l <= 3) {
         std::vector<Point2f> tmp;
         for (int i = l; i <= r; i++) tmp.push_back(pts[i]);
-        return graham(tmp); // base simples
+        return graham(tmp);
     }
 
     int mid = (l + r) / 2;
@@ -290,6 +277,152 @@ std::vector<Point2f> mergehull(std::vector<Point2f> pts) {
         });
 
     return mergehull_rec(pts, 0, pts.size() - 1);
+}
+
+// ================= Gift Wrapping =================
+
+Mesh3f giftWrapping(std::vector<Point3f> pts) {
+    Mesh3f mesh;
+
+    int n = pts.size();
+    if (n < 4) return mesh;
+
+    using Vec3 = geometry::Vector<float, 3>;
+
+    auto vec = [](const Point3f& a, const Point3f& b) {
+        return b - a;
+    };
+
+    auto cross = [](const Vec3& u, const Vec3& v) {
+        return Vec3{
+            u[1]*v[2] - u[2]*v[1],
+            u[2]*v[0] - u[0]*v[2],
+            u[0]*v[1] - u[1]*v[0]
+        };
+    };
+
+    auto dot = [](const Vec3& a, const Vec3& b) {
+        return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+    };
+
+    auto plane_side = [&](const Point3f& A,
+                          const Point3f& B,
+                          const Point3f& C,
+                          const Point3f& P)
+    {
+        Vec3 n = cross(vec(A,B), vec(A,C));
+        Vec3 ap = vec(A, P);
+        return dot(n, ap);
+    };
+
+    struct Face { int a,b,c; };
+
+    int i0=0,i1=1,i2=2,i3=3;
+
+    for (int i=0;i<n;i++)
+    for (int j=i+1;j<n;j++)
+    for (int k=j+1;k<n;k++)
+    for (int l=k+1;l<n;l++) {
+        if (std::abs(plane_side(pts[i],pts[j],pts[k],pts[l])) > 1e-6f) {
+            i0=i; i1=j; i2=k; i3=l;
+            goto found;
+        }
+    }
+found:
+
+    std::vector<Face> faces = {
+        {i0,i1,i2},
+        {i0,i1,i3},
+        {i0,i2,i3},
+        {i1,i2,i3}
+    };
+
+    for (int p = 0; p < n; p++) {
+
+        bool outside = false;
+        for (auto& f : faces) {
+            if (plane_side(pts[f.a], pts[f.b], pts[f.c], pts[p]) > 1e-6f) {
+                outside = true;
+                break;
+            }
+        }
+        if (!outside) continue;
+
+        std::vector<bool> visible(faces.size(), false);
+
+        for (int i = 0; i < (int)faces.size(); i++) {
+            if (plane_side(
+                    pts[faces[i].a],
+                    pts[faces[i].b],
+                    pts[faces[i].c],
+                    pts[p]
+                ) > 1e-6f)
+            {
+                visible[i] = true;
+            }
+        }
+
+        std::vector<std::pair<int,int>> edges;
+
+        for (int i = 0; i < (int)faces.size(); i++) {
+            if (!visible[i]) continue;
+
+            auto& f = faces[i];
+            edges.emplace_back(f.a, f.b);
+            edges.emplace_back(f.b, f.c);
+            edges.emplace_back(f.c, f.a);
+        }
+
+        std::vector<std::pair<int,int>> boundary;
+
+        for (int i = 0; i < (int)edges.size(); i++) {
+            bool shared = false;
+
+            for (int j = 0; j < (int)edges.size(); j++) {
+                if (i != j &&
+                    edges[i].first == edges[j].second &&
+                    edges[i].second == edges[j].first)
+                {
+                    shared = true;
+                    break;
+                }
+            }
+
+            if (!shared)
+                boundary.push_back(edges[i]);
+        }
+
+        std::vector<Face> new_faces;
+
+        for (int i = 0; i < (int)faces.size(); i++) {
+            if (!visible[i])
+                new_faces.push_back(faces[i]);
+        }
+
+        for (auto& e : boundary) {
+            new_faces.push_back({e.first, e.second, p});
+        }
+
+        faces = new_faces;
+    }
+
+    std::vector<int> map(n, -1);
+
+    for (auto& f : faces) {
+
+        if (map[f.a] == -1)
+            map[f.a] = mesh.addVertex(pts[f.a]);
+
+        if (map[f.b] == -1)
+            map[f.b] = mesh.addVertex(pts[f.b]);
+
+        if (map[f.c] == -1)
+            map[f.c] = mesh.addVertex(pts[f.c]);
+
+        mesh.addFace(map[f.a], map[f.b], map[f.c]);
+    }
+
+    return mesh;
 }
 
 } // namespace convex_hull

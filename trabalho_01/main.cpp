@@ -609,15 +609,13 @@ private:
         
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE); // Importante para transparência não bugar
+        glDepthMask(GL_FALSE);
 
         glPushMatrix();
             glTranslatef(camera.centerX, camera.centerY, camera.centerZ);
             
-            // O raio baseado no boom como você pediu anteriormente
             float radius = camera.boom * 0.008f; 
             
-            // Chamamos a função personalizada passando os dados da câmera
             drawCompassFresnelSphere(radius, 32, 32, camera);
         glPopMatrix();
 

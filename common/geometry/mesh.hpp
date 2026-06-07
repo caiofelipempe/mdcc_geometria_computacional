@@ -10,25 +10,10 @@
 
 #include "point.hpp"
 #include "vector.hpp"
-#include "segment.hpp"
 
 namespace geometry {
 
 /* ================= TRIANGLE ================= */
-
-struct TriangleIndices {
-
-    std::size_t v0{};
-    std::size_t v1{};
-    std::size_t v2{};
-
-    constexpr std::size_t operator[](
-        std::size_t i
-    ) const {
-
-        return (&v0)[i];
-    }
-};
 
 /* ================= MESH ================= */
 
@@ -43,7 +28,8 @@ public:
 private:
 
     std::vector<PointType> vertices;
-    std::vector<TriangleIndices> faces;
+    std::vector<std::array<std::size_t, 3>> faces;
+    std::vector<std::array<std::size_t, 4>> tetrahedrons;
 
 public:
 
@@ -51,10 +37,21 @@ public:
 
     Mesh() = default;
 
-    Mesh(std::vector<PointType> verts,
-         std::vector<TriangleIndices> tris)
+    Mesh(std::vector<PointType> verts)
+        : vertices(std::move(verts)) {}
+
+    Mesh(std::vector<PointType> verts, std::vector<std::array<std::size_t, 3>> faces)
         : vertices(std::move(verts)),
-          faces(std::move(tris)) {}
+          faces(std::move(faces)) {}
+
+    Mesh(std::vector<PointType> verts, std::vector<std::array<std::size_t, 4>> tetrahedrons)
+        : vertices(std::move(verts)),
+          tetrahedrons(std::move(tetrahedrons)) {}
+
+    Mesh(std::vector<PointType> verts, std::vector<std::array<std::size_t, 3>> faces, std::vector<std::array<std::size_t, 4>> tetrahedrons)
+        : vertices(std::move(verts)),
+          faces(std::move(faces)),
+          tetrahedrons(std::move(tetrahedrons)) {}
 
     /* ================= DADOS ================= */
 
@@ -75,9 +72,15 @@ public:
     }
 
     [[nodiscard]]
-    const std::vector<TriangleIndices>&
+    const std::vector<std::array<std::size_t, 3>>&
     getFaces() const noexcept {
         return faces;
+    }
+
+    [[nodiscard]]
+    const std::vector<std::array<std::size_t, 4>>&
+    getTetrahedrons() const noexcept {
+        return tetrahedrons;
     }
 
     [[nodiscard]]
@@ -87,7 +90,7 @@ public:
     }
 
     [[nodiscard]]
-    std::vector<TriangleIndices>&
+    std::vector<std::array<std::size_t, 3>>&
     getFaces() noexcept {
         return faces;
     }
@@ -108,9 +111,7 @@ public:
         return vertices.size() - 1;
     }
 
-    void addFace(std::size_t i0,
-                 std::size_t i1,
-                 std::size_t i2) {
+    void addFace(std::size_t i0, std::size_t i1, std::size_t i2) {
 
 #ifndef NDEBUG
 
@@ -130,17 +131,38 @@ public:
         });
     }
 
+    void addTetrahedron(std::size_t i0, std::size_t i1, std::size_t i2, std::size_t i3) {
+
+#ifndef NDEBUG
+
+        const auto sz = vertices.size();
+
+        if (i0 >= sz || i1 >= sz || i2 >= sz || i3 >= sz)
+            throw std::out_of_range(
+                "Mesh tetrahedron index out of bounds"
+            );
+
+#endif
+
+        tetrahedrons.push_back({
+            i0,
+            i1,
+            i2,
+            i3
+        });
+    }
+
     /* ================= ÁREA ================= */
 
     [[nodiscard]]
-    T faceArea(const TriangleIndices& f) const
+    T faceArea(const std::vector<std::array<std::size_t, 3>>& f) const
     requires NormalizableScalar<T>
     {
         const VectorType ab =
-            vertices[f.v1] - vertices[f.v0];
+            vertices[f[1]] - vertices[f[0]];
 
         const VectorType ac =
-            vertices[f.v2] - vertices[f.v0];
+            vertices[f[2]] - vertices[f[0]];
 
         if constexpr (N == 2) {
 
@@ -341,9 +363,9 @@ public:
 
         for (const auto& f : faces) {
 
-            if (f.v0 >= sz ||
-                f.v1 >= sz ||
-                f.v2 >= sz) {
+            if (f[0] >= sz ||
+                f[1] >= sz ||
+                f[2] >= sz) {
 
                 return false;
             }

@@ -26,13 +26,14 @@ find_package(CGAL REQUIRED)
 # -----------------------------
 # Tarefas
 # -----------------------------
-option(BUILD_TAREFA_02 "Compilar Tarefa 02" ON)
-option(BUILD_TAREFA_03 "Compilar Tarefa 03" ON)
+option(BUILD_TAREFA_02 "Compilar Tarefa 02" OFF)
+option(BUILD_TAREFA_03 "Compilar Tarefa 03" OFF)
 
 # -----------------------------
 # Trabalhos
 # -----------------------------
-option(BUILD_TRABALHO_01 "Compilar Trabalho 01" ON)
+option(BUILD_TRABALHO_01 "Compilar Trabalho 01" OFF)
+option(BUILD_TRABALHO_02 "Compilar Trabalho 02" ON)
 
 add_subdirectory(common)
 
@@ -46,4 +47,8 @@ endif()
 
 if(BUILD_TRABALHO_01)
     add_subdirectory(trabalho_01)
+endif()
+
+if(BUILD_TRABALHO_02)
+    add_subdirectory(trabalho_02)
 endif()

@@ -2,8 +2,6 @@ add_library(geometry INTERFACE
     arithmetic.hpp
     vector.hpp
     point.hpp
-    segment.hpp
-    ray.hpp
     mesh.hpp
 )
 

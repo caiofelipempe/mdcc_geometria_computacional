@@ -28,8 +28,6 @@ public:
 protected:
     void onInit(int w, int h, const std::string&) override {
         onWindowResize(w, h);
-        
-        updateCamera();
     }
 
     void onWindowResize(int w, int h) override {
@@ -108,13 +106,16 @@ private:
         none = 0,
         loadModel,
         generateRandomPoints,
+        generateCubePoints,
         resetCamera,
         clearPoints,
         clearModel,
         saveModel,
         cgal,
+        delaunay,
     } buttonClick = ButtonClick::none;
 
+    int numberOfRandomPoints = 50;
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
     std::mutex meshesMutex;
@@ -218,7 +219,34 @@ private:
                 objectPoints.clear();
                 meshes.clear();
                 std::vector<Point3f> points;
-                for (int i = 0; i < 10; ++i) {
+                for (int i = 0; i < numberOfRandomPoints; ++i) {
+                    points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
+                }
+
+                objectPoints.emplace_back("main", points);
+            }
+            break;
+        
+        case ButtonClick::generateCubePoints:
+            {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> dis(-1.0, 1.0);
+
+                objectPoints.clear();
+                meshes.clear();
+
+                std::vector<Point3f> points;
+                points.push_back(Point3f({1.f, 1.f, 1.f}));
+                points.push_back(Point3f({1.f, 1.f, -1.f}));
+                points.push_back(Point3f({1.f, -1.f, 1.f}));
+                points.push_back(Point3f({1.f, -1.f, -1.f}));
+                points.push_back(Point3f({-1.f, 1.f, 1.f}));
+                points.push_back(Point3f({-1.f, 1.f, -1.f}));
+                points.push_back(Point3f({-1.f, -1.f, 1.f}));
+                points.push_back(Point3f({-1.f, -1.f, -1.f}));
+
+                for (int i = 0; i < numberOfRandomPoints; ++i) {
                     points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
                 }
 
@@ -267,6 +295,23 @@ private:
                 }
                 for (auto &[_, mesh] : meshes) {
                     tetrahedralization::cgal(mesh);
+                }
+            }
+            break;
+        
+        case ButtonClick::delaunay:
+            {
+                meshes.clear();
+
+                for (auto& [name, points] : objectPoints) {
+                    geometry::Mesh3f mesh;
+                    for (const auto& p : points) {
+                        auto _ = mesh.addVertex(p);
+                    }
+                    meshes.emplace_back(name, mesh);
+                }
+                for (auto &[_, mesh] : meshes) {
+                    tetrahedralization::delaunay(mesh);
                 }
             }
             break;
@@ -404,9 +449,15 @@ private:
         if (ImGui::Button("Buscar Modelo")) {
             buttonClick = ButtonClick::loadModel;
         }
+
+        if (ImGui::DragInt("Quantidade de Números Randômicos", &numberOfRandomPoints)) {}
         
         if (ImGui::Button("Gerar Pontos Randômicos")) {
             buttonClick = ButtonClick::generateRandomPoints;
+        }
+        
+        if (ImGui::Button("Gerar Cubo")) {
+            buttonClick = ButtonClick::generateCubePoints;
         }
         
         fileSelector.Draw();
@@ -466,6 +517,50 @@ private:
                 ImGui::Text("Tetrahedralização");
                 if (ImGui::Button("CGal")) {
                     buttonClick = ButtonClick::cgal;
+                }
+                if (ImGui::Button("Delaunay")) {
+                    buttonClick = ButtonClick::delaunay;
+                }
+                if (ImGui::Button("comparacao")) {
+                    meshes.clear();
+
+                    for (auto& [name, points] : objectPoints) {
+                        geometry::Mesh3f mesh;
+                        for (const auto& p : points) {
+                            auto _ = mesh.addVertex(p);
+                        }
+                        meshes.emplace_back(name, mesh);
+                    }
+                    for (auto &[_, mesh] : meshes) {
+                        tetrahedralization::cgal(mesh);
+                    }
+
+                    int s = 0;
+                    for(auto& [_, mesh] : meshes) {
+                        s += mesh.getTetrahedrons().size();
+                    }
+                    std::cerr << "CGAL  — tets: " << s << "\n";
+
+                    meshes.clear();
+
+                    for (auto& [name, points] : objectPoints) {
+                        geometry::Mesh3f mesh;
+                        for (const auto& p : points) {
+                            auto _ = mesh.addVertex(p);
+                        }
+                        meshes.emplace_back(name, mesh);
+                    }
+                    for (auto &[_, mesh] : meshes) {
+                        tetrahedralization::delaunay(mesh);
+                    }
+
+                    s = 0;
+                    for(auto& [_, mesh] : meshes) {
+                        s += mesh.getTetrahedrons().size();
+                    }
+                    std::cerr << "bowyer_watson  — tets: " << s << "\n";
+                    
+                    meshes.clear();
                 }
 
                 ImGui::Separator();

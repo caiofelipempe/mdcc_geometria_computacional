@@ -9,16 +9,13 @@
 #include <cstdint>
 #include <iostream>
 
-// CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Triangulation_vertex_base_with_info_3.h>
 #include <CGAL/Triangulation_data_structure_3.h>
 
-// Kernel
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 
-// ✅ Vertex com índice
 typedef CGAL::Triangulation_vertex_base_with_info_3<int, K> Vb;
 typedef CGAL::Triangulation_cell_base_3<K> Cb;
 typedef CGAL::Triangulation_data_structure_3<Vb, Cb> Tds;
@@ -181,7 +178,7 @@ void delaunay(geometry::Mesh3f& mesh) {
             tet[1] >= num_original_vertices ||
             tet[2] >= num_original_vertices || 
             tet[3] >= num_original_vertices) {
-            continue; // Descarta sem dó
+            continue;
         }
         mesh.addTetrahedron(tet[0], tet[1], tet[2], tet[3]);
     }

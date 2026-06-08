@@ -964,41 +964,28 @@ private:
         );
     }
 
-    // Função auxiliar para calcular a cor baseada na orientação da normal
     void getColorForNormal(float nx, float ny, float nz, float maxOpacity, float* r, float* g, float* b, float* a) {
-        // A normal (nx, ny, nz) nos diz para onde o vértice está apontando.
-        // Usamos abs() para que a cor apareça tanto no lado positivo quanto negativo dos eixos,
-        // ou apenas std::max(0.0f, n) se quiser a cor apenas no semi-eixo positivo.
+        float redIntensity   = std::max(0.0f, ny);
+        float greenIntensity = std::max(0.0f, nx);
+        float blueIntensity  = std::max(0.0f, nz);
         
-        // semi-eixos positivos:
-        float redIntensity   = std::max(0.0f, ny); // Cima (+Y)
-        float greenIntensity = std::max(0.0f, nx); // Direita (+X)
-        float blueIntensity  = std::max(0.0f, nz); // Frente (+Z)
-        
-        //semi-eixos negativos (opcional, para diferenciar):
-        float cyanIntensity    = std::max(0.0f, -ny); // Baixo (-Y)
-        float magentaIntensity = std::max(0.0f, -nx); // Esquerda (-X)
-        float yellowIntensity  = std::max(0.0f, -nz); // Trás (-Z)
+        float cyanIntensity    = std::max(0.0f, -ny);
+        float magentaIntensity = std::max(0.0f, -nx);
+        float yellowIntensity  = std::max(0.0f, -nz);
 
-        // Mistura as cores.
-        // Se estiver exatamente no semi-eixo positivo, teremos RGB puro.
         *r = redIntensity;
         *g = greenIntensity;
         *b = blueIntensity;
         
-        // Adiciona as cores negativas para completar a bússola (opcional)
-        // Se preferir que os lados negativos fiquem pretos/neutros, comente as linhas abaixo:
-        *r += (magentaIntensity * 0.2f + yellowIntensity * 0.2f); // Esquerda e Trás dão uma nuance
+        *r += (magentaIntensity * 0.2f + yellowIntensity * 0.2f);
         *g += (cyanIntensity * 0.2f + yellowIntensity * 0.2f);
         *b += (cyanIntensity * 0.2f + magentaIntensity * 0.2f);
 
-        // Normaliza a cor para garantir que não ultrapasse 1.0 (RGB)
         float maxCol = std::max({*r, *g, *b, 1.0f});
         *r /= maxCol; *g /= maxCol; *b /= maxCol;
     }
 
     void drawCompassFresnelSphere(float radius, int slices, int stacks, const LookAt& camera) {
-        // Vetor que aponta da esfera para a câmera (normalizado)
         float dirX = camera.forwardX;
         float dirY = camera.forwardY;
         float dirZ = camera.forwardZ;
@@ -1018,38 +1005,27 @@ private:
                 float x = std::cos(lng);
                 float y = std::sin(lng);
 
-                // ─────────────────────────────────────────────────────────────
-                // Vértice 1 (Anel Superior do Strip)
-                // ─────────────────────────────────────────────────────────────
                 float nx1 = x * zr1;
                 float ny1 = y * zr1;
                 float nz1 = z1;
                 
-                // 1. Cálculo da Transparência (Fresnel)
-                // Mantemos o centro transparente e as bordas opacas
                 float dot1 = (nx1 * dirX + ny1 * dirY + nz1 * dirZ);
                 float alphaFresnel1 = std::pow(1.0f - std::abs(dot1), 2.0f);
                 
-                // 2. Cálculo da Cor Baseada na Normal (Bússola)
                 float r1, g1, b1, a1;
-                float maxAlpha = 0.6f; // Opacidade máxima na borda
+                float maxAlpha = 0.6f;
                 getColorForNormal(nx1, ny1, nz1, maxAlpha, &r1, &g1, &b1, &a1);
                 
                 glColor4f(r1, g1, b1, alphaFresnel1 * maxAlpha);
                 glVertex3f(nx1 * radius, ny1 * radius, nz1 * radius);
 
-                // ─────────────────────────────────────────────────────────────
-                // Vértice 2 (Anel Inferior do Strip)
-                // ─────────────────────────────────────────────────────────────
                 float nx2 = x * zr0;
                 float ny2 = y * zr0;
                 float nz2 = z0;
                 
-                // 1. Cálculo da Transparência (Fresnel)
                 float dot2 = (nx2 * dirX + ny2 * dirY + nz2 * dirZ);
                 float alphaFresnel2 = std::pow(1.0f - std::abs(dot2), 2.0f);
 
-                // 2. Cálculo da Cor Baseada na Normal (Bússola)
                 float r2, g2, b2, a2;
                 getColorForNormal(nx2, ny2, nz2, maxAlpha, &r2, &g2, &b2, &a2);
                 

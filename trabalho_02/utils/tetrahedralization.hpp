@@ -8,6 +8,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <unistd.h>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_3.h>
@@ -64,13 +65,6 @@ struct Circumsphere {
     float radius_sqr;
 };
 
-float det4x4(float m[4][4]) {
-    return m[0][0] * (m[1][1] * (m[2][2]*m[3][3] - m[2][3]*m[3][2]) - m[1][2] * (m[2][1]*m[3][3] - m[2][3]*m[3][1]) + m[1][3] * (m[2][1]*m[3][2] - m[2][2]*m[3][1]))
-         - m[0][1] * (m[1][0] * (m[2][2]*m[3][3] - m[2][3]*m[3][2]) - m[1][2] * (m[2][0]*m[3][3] - m[2][3]*m[3][0]) + m[1][3] * (m[2][0]*m[3][2] - m[2][2]*m[3][0]))
-         + m[0][2] * (m[1][0] * (m[2][1]*m[3][3] - m[2][3]*m[3][1]) - m[1][1] * (m[2][0]*m[3][3] - m[2][3]*m[3][0]) + m[1][3] * (m[2][0]*m[3][1] - m[2][1]*m[3][0]))
-         - m[0][3] * (m[1][0] * (m[2][1]*m[3][2] - m[2][2]*m[3][1]) - m[1][1] * (m[2][0]*m[3][2] - m[2][2]*m[3][0]) + m[1][2] * (m[2][0]*m[3][1] - m[2][1]*m[3][0]));
-}
-
 Circumsphere getCircumsphere(const Point3f& p0, const Point3f& p1, const Point3f& p2, const Point3f& p3) {
     float x1 = p1[0] - p0[0], y1 = p1[1] - p0[1], z1 = p1[2] - p0[2];
     float x2 = p2[0] - p0[0], y2 = p2[1] - p0[1], z2 = p2[2] - p0[2];
@@ -98,62 +92,83 @@ Circumsphere getCircumsphere(const Point3f& p0, const Point3f& p1, const Point3f
     return cs;
 }
 
-void delaunay(geometry::Mesh3f& mesh) {
-    if (mesh.vertexCount() < 4) return;
+void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::mutex& mutex, std::atomic<bool>& stop) {
+    std::size_t num_original_vertices;
+    {
+        std::scoped_lock lock(mutex);
 
-    std::vector<Point3f> local_vertices = mesh.getVertices();
-    std::size_t num_original_vertices = local_vertices.size();
+        if (mesh.vertexCount() < 4) return;
 
-    auto [min_p, max_p] = mesh.boundingBox();
-    float dx = max_p[0] - min_p[0];
-    float dy = max_p[1] - min_p[1];
-    float dz = max_p[2] - min_p[2];
-    float delta_max = std::max({dx, dy, dz});
-    Point3f mid = mesh.centroid();
+        num_original_vertices = mesh.getVertices().size();
 
-
-    std::size_t st0 = local_vertices.size();
-    local_vertices.push_back(Point3f{mid[0] - 20 * delta_max, mid[1] - 20 * delta_max, mid[2] - 20 * delta_max});
-    
-    std::size_t st1 = local_vertices.size();
-    local_vertices.push_back(Point3f{mid[0] + 20 * delta_max, mid[1] - 20 * delta_max, mid[2] - 20 * delta_max});
-    
-    std::size_t st2 = local_vertices.size();
-    local_vertices.push_back(Point3f{mid[0], mid[1] + 20 * delta_max, mid[2] - 20 * delta_max});
-    
-    std::size_t st3 = local_vertices.size();
-    local_vertices.push_back(Point3f{mid[0], mid[1], mid[2] + 20 * delta_max});
+        auto [min_p, max_p] = mesh.boundingBox();
+        float dx = max_p[0] - min_p[0];
+        float dy = max_p[1] - min_p[1];
+        float dz = max_p[2] - min_p[2];
+        float delta_max = std::max({dx, dy, dz});
+        Point3f mid = mesh.centroid();
 
 
-    std::vector<std::array<std::size_t, 4>> tetrahedrons;
-    tetrahedrons.push_back({st0, st1, st2, st3});
+        std::size_t st0 = mesh.getVertices().size();
+        mesh.getVertices().push_back(Point3f{mid[0] - 20 * delta_max, mid[1] - 20 * delta_max, mid[2] - 20 * delta_max});
+        
+        std::size_t st1 = mesh.getVertices().size();
+        mesh.getVertices().push_back(Point3f{mid[0] + 20 * delta_max, mid[1] - 20 * delta_max, mid[2] - 20 * delta_max});
+        
+        std::size_t st2 = mesh.getVertices().size();
+        mesh.getVertices().push_back(Point3f{mid[0], mid[1] + 20 * delta_max, mid[2] - 20 * delta_max});
+        
+        std::size_t st3 = mesh.getVertices().size();
+        mesh.getVertices().push_back(Point3f{mid[0], mid[1], mid[2] + 20 * delta_max});
+
+
+        mesh.getTetrahedrons().push_back({st0, st1, st2, st3});
+    }
 
     for (std::size_t i = 0; i < num_original_vertices; ++i) {
-        const auto& p = local_vertices[i];
+        if(stop) return;
+
+        geometry::Point<float, 3UL> *pp;
+        size_t meshTetrahedronSize;
+        {
+            std::scoped_lock lock(mutex);
+            pp = &mesh.getVertices()[i];
+            meshTetrahedronSize = mesh.getTetrahedrons().size();
+        }
+        const geometry::Point<float, 3UL>& p = *pp;
         std::vector<std::size_t> bad_tetrahedrons;
         std::set<std::array<std::size_t, 3>> polygon_cavity;
 
-        for (std::size_t t = 0; t < tetrahedrons.size(); ++t) {
-            auto cs = getCircumsphere(local_vertices[tetrahedrons[t][0]], 
-                                      local_vertices[tetrahedrons[t][1]], 
-                                      local_vertices[tetrahedrons[t][2]], 
-                                      local_vertices[tetrahedrons[t][3]]);
+        for (std::size_t t = 0; t < meshTetrahedronSize; ++t) {
+            if(stop) return;
+            Point3f csp0, csp1, csp2, csp3;
+            {
+                std::scoped_lock lock(mutex);
+                csp0 = mesh.getVertices()[mesh.getTetrahedrons()[t][0]];
+                csp1 = mesh.getVertices()[mesh.getTetrahedrons()[t][1]];
+                csp2 = mesh.getVertices()[mesh.getTetrahedrons()[t][2]];
+                csp3 = mesh.getVertices()[mesh.getTetrahedrons()[t][3]];
+            }
+            auto cs = getCircumsphere(csp0, csp1, csp2, csp3);
             
             float dist_sqr = p.squared_distance_to(cs.center);
 
             if (dist_sqr < cs.radius_sqr - 1e-6f) {
                 bad_tetrahedrons.push_back(t);
-                
-                std::array<std::array<std::size_t, 3>, 4> faces = {
-                    {
-                        {tetrahedrons[t][0], tetrahedrons[t][1], tetrahedrons[t][2]},
-                        {tetrahedrons[t][0], tetrahedrons[t][1], tetrahedrons[t][3]},
-                        {tetrahedrons[t][0], tetrahedrons[t][2], tetrahedrons[t][3]},
-                        {tetrahedrons[t][1], tetrahedrons[t][2], tetrahedrons[t][3]}
-                    }
-                };
-
+                std::array<std::array<std::size_t, 3>, 4> faces;
+                {
+                    std::scoped_lock lock(mutex);
+                    faces = {
+                        {
+                            {mesh.getTetrahedrons()[t][0], mesh.getTetrahedrons()[t][1], mesh.getTetrahedrons()[t][2]},
+                            {mesh.getTetrahedrons()[t][0], mesh.getTetrahedrons()[t][1], mesh.getTetrahedrons()[t][3]},
+                            {mesh.getTetrahedrons()[t][0], mesh.getTetrahedrons()[t][2], mesh.getTetrahedrons()[t][3]},
+                            {mesh.getTetrahedrons()[t][1], mesh.getTetrahedrons()[t][2], mesh.getTetrahedrons()[t][3]}
+                        }
+                    };
+                }
                 for (const auto& face : faces) {
+                    if(stop) return;
                     if (polygon_cavity.contains(face)) {
                         polygon_cavity.erase(face);
                     } else {
@@ -165,22 +180,39 @@ void delaunay(geometry::Mesh3f& mesh) {
 
         std::sort(bad_tetrahedrons.begin(), bad_tetrahedrons.end(), std::greater<std::size_t>());
         for (auto index : bad_tetrahedrons) {
-            tetrahedrons.erase(tetrahedrons.begin() + index);
+            if(stop) return;
+            {
+                std::scoped_lock lock(mutex);
+                mesh.getTetrahedrons().erase(mesh.getTetrahedrons().begin() + index);
+            }
+            usleep(step_time);
         }
 
         for (const auto& face : polygon_cavity) {
-            tetrahedrons.push_back({face[0], face[1], face[2], i});
+            if(stop) return;
+            {
+                std::scoped_lock lock(mutex);
+                mesh.getTetrahedrons().push_back({face[0], face[1], face[2], i});
+            }
+            usleep(step_time);
         }
     }
 
-    for (const auto& tet : tetrahedrons) {
-        if (tet[0] >= num_original_vertices || 
-            tet[1] >= num_original_vertices ||
-            tet[2] >= num_original_vertices || 
-            tet[3] >= num_original_vertices) {
-            continue;
-        }
-        mesh.addTetrahedron(tet[0], tet[1], tet[2], tet[3]);
+    {
+        std::scoped_lock lock(mutex);
+        mesh.getTetrahedrons().erase(std::remove_if(mesh.getTetrahedrons().begin(), mesh.getTetrahedrons().end(), [num_original_vertices](const auto& x) {
+            return x[0] >= num_original_vertices || x[1] >= num_original_vertices || x[2] >= num_original_vertices || x[3] >= num_original_vertices;
+        }), mesh.getTetrahedrons().end());
+    }
+
+    usleep(step_time);
+
+    {
+        std::scoped_lock lock(mutex);
+        mesh.getVertices().pop_back();
+        mesh.getVertices().pop_back();
+        mesh.getVertices().pop_back();
+        mesh.getVertices().pop_back();
     }
 }
 

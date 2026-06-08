@@ -36,11 +36,24 @@ protected:
     }
 
     void onUpdate(float dt) override {
-        updateButtomClick();
-        updateFileSelector();
-        updateFileSaver();
-        updateInput();
-        updateCamera();
+        {
+            std::scoped_lock lock(meshesMutex);
+
+            updateButtomClick();
+            updateFileSelector();
+            updateFileSaver();
+            updateInput();
+            updateCamera();
+        }
+
+        if(delaunayStop) {
+            if(delaunayFut.valid()) {
+                delaunayFut.wait();
+            }
+
+            delaunayStop = false;
+            meshes.clear();
+        }
     }
 
     void onUI() override {
@@ -122,6 +135,10 @@ private:
     std::vector<std::tuple<std::string, std::vector<Point3f>>> objectPoints;
     std::vector<std::tuple<std::string, geometry::Mesh3f>> meshes;
     std::mutex meshesMutex;
+    std::future<void> delaunayFut;
+    std::atomic<bool> delaunayStop = false;
+    std::atomic<bool> delaunayRunning = false;
+    std::atomic<useconds_t> step_time = 3000;
     bool showOriginalPoints = false;
     bool showVertices = false;
     bool showEdges = true;
@@ -205,6 +222,12 @@ private:
     }
 
     void updateButtomClick() {
+        if(buttonClick != ButtonClick::none && delaunayRunning) {
+            std::cout << "Teste";
+            delaunayStop = true;
+            return;
+        }
+
         switch (buttonClick)
         {
         case ButtonClick::loadModel:
@@ -223,6 +246,7 @@ private:
                 meshes.clear();
                 std::vector<Point3f> points;
                 for (int i = 0; i < numberOfRandomPoints; ++i) {
+                    if(delaunayStop) return;
                     points.push_back(Point3f({(float)dis(gen), (float)dis(gen), (float)dis(gen)}));
                 }
 
@@ -461,9 +485,16 @@ private:
                     }
                     meshes.emplace_back(name, mesh);
                 }
-                for (auto &[_, mesh] : meshes) {
-                    tetrahedralization::delaunay(mesh);
-                }
+
+                delaunayRunning = true;
+                delaunayFut = std::async(std::launch::async, ([this]() {
+                    if(delaunayStop) return;
+                    for (auto &[_, mesh] : meshes) {
+                        tetrahedralization::delaunay(mesh, step_time, meshesMutex, delaunayStop);
+                    }
+
+                    delaunayRunning = false;
+                }));
             }
             break;
         
@@ -600,7 +631,7 @@ private:
             buttonClick = ButtonClick::loadModel;
         }
 
-        if (ImGui::DragInt("Quantidade de Números Randômicos", &numberOfRandomPoints)) {}
+        ImGui::DragInt("Quantidade de Números Randômicos", &numberOfRandomPoints);
         
         if (ImGui::Button("Gerar Pontos Randômicos")) {
             buttonClick = ButtonClick::generateRandomPoints;
@@ -668,6 +699,11 @@ private:
                     buttonClick = ButtonClick::clearModel;
                 }
                 ImGui::Separator();
+                if(delaunayRunning) {
+                    int dragStepTime = step_time;
+                    ImGui::DragInt("Tempo dos passos", &dragStepTime);
+                    step_time = dragStepTime;
+                }
             } else {
                 ImGui::Separator();
 
@@ -675,49 +711,11 @@ private:
                 if (ImGui::Button("CGal")) {
                     buttonClick = ButtonClick::cgal;
                 }
+                int dragStepTime = step_time;
+                ImGui::DragInt("Tempo dos passos", &dragStepTime);
+                step_time = dragStepTime;
                 if (ImGui::Button("Delaunay")) {
                     buttonClick = ButtonClick::delaunay;
-                }
-                if (ImGui::Button("comparacao")) {
-                    meshes.clear();
-
-                    for (auto& [name, points] : objectPoints) {
-                        geometry::Mesh3f mesh;
-                        for (const auto& p : points) {
-                            auto _ = mesh.addVertex(p);
-                        }
-                        meshes.emplace_back(name, mesh);
-                    }
-                    for (auto &[_, mesh] : meshes) {
-                        tetrahedralization::cgal(mesh);
-                    }
-
-                    int s = 0;
-                    for(auto& [_, mesh] : meshes) {
-                        s += mesh.getTetrahedrons().size();
-                    }
-                    std::cerr << "CGAL  — tets: " << s << "\n";
-
-                    meshes.clear();
-
-                    for (auto& [name, points] : objectPoints) {
-                        geometry::Mesh3f mesh;
-                        for (const auto& p : points) {
-                            auto _ = mesh.addVertex(p);
-                        }
-                        meshes.emplace_back(name, mesh);
-                    }
-                    for (auto &[_, mesh] : meshes) {
-                        tetrahedralization::delaunay(mesh);
-                    }
-
-                    s = 0;
-                    for(auto& [_, mesh] : meshes) {
-                        s += mesh.getTetrahedrons().size();
-                    }
-                    std::cerr << "bowyer_watson  — tets: " << s << "\n";
-                    
-                    meshes.clear();
                 }
 
                 ImGui::Separator();

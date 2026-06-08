@@ -95,6 +95,12 @@ public:
         return faces;
     }
 
+    [[nodiscard]]
+    std::vector<std::array<std::size_t, 4>>&
+    getTetrahedrons() noexcept {
+        return tetrahedrons;
+    }
+
     void clear() {
 
         vertices.clear();

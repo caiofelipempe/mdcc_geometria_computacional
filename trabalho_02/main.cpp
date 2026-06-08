@@ -107,6 +107,9 @@ private:
         loadModel,
         generateRandomPoints,
         generateCubePoints,
+        generateSpherePoints,
+        generateCylinderPoints,
+        generateConePoints,
         resetCamera,
         clearPoints,
         clearModel,
@@ -253,6 +256,154 @@ private:
                 objectPoints.emplace_back("main", points);
             }
             break;
+
+        case ButtonClick::generateSpherePoints:
+            {
+                objectPoints.clear();
+                meshes.clear();
+                std::vector<Point3f> points;
+
+                float radius = 2.0f;
+                int rings = 12;
+                int sectors = 12;
+
+                points.push_back(Point3f({0.f, radius, 0.f}));
+                points.push_back(Point3f({0.f, -radius, 0.f}));
+
+                for (int r = 1; r < rings; ++r) {
+                    float phi = M_PI * (float)r / (float)rings;
+                    float y = radius * std::cos(phi);
+                    float ringRadius = radius * std::sin(phi);
+
+                    for (int s = 0; s < sectors; ++s) {
+                        float theta = 2.0f * M_PI * (float)s / (float)sectors;
+                        float x = ringRadius * std::cos(theta);
+                        float z = ringRadius * std::sin(theta);
+
+                        points.push_back(Point3f({x, y, z}));
+                    }
+                }
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> disReal(-radius, radius);
+
+                for (int i = 0; i < numberOfRandomPoints; ++i) {
+                    float x = (float)disReal(gen);
+                    float y = (float)disReal(gen);
+                    float z = (float)disReal(gen);
+                    
+                    if (x*x + y*y + z*z <= radius*radius) {
+                        points.push_back(Point3f({x, y, z}));
+                    } else {
+                        --i;
+                    }
+                }
+
+                objectPoints.emplace_back("sphere", points);
+            }
+            break;
+
+        case ButtonClick::generateCylinderPoints:
+            {
+                objectPoints.clear();
+                meshes.clear();
+                std::vector<Point3f> points;
+
+                float radius = 1.5f;
+                float height = 4.0f;
+                int slices = 16;
+                int stacks = 6;
+
+                for (int i = 0; i <= stacks; ++i) {
+                    float y = -height / 2.0f + height * ((float)i / (float)stacks);
+
+                    for (int j = 0; j < slices; ++j) {
+                        float theta = 2.0f * M_PI * (float)j / (float)slices;
+                        float x = radius * std::cos(theta);
+                        float z = radius * std::sin(theta);
+
+                        points.push_back(Point3f({x, y, z}));
+                    }
+                }
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> disRadius(0.0, radius);
+                std::uniform_real_distribution<> disAngle(0.0, 2.0 * M_PI);
+                std::uniform_real_distribution<> disHeight(-height / 2.0f, height / 2.0f);
+
+                for (int i = 0; i < numberOfRandomPoints; ++i) {
+                    float r = (float)disRadius(gen);
+                    float theta = (float)disAngle(gen);
+                    
+                    float x = r * std::cos(theta);
+                    float z = r * std::sin(theta);
+                    float y = (float)disHeight(gen);
+
+                    points.push_back(Point3f({x, y, z}));
+                }
+
+                objectPoints.emplace_back("cylinder", points);
+            }
+            break;
+
+            case ButtonClick::generateConePoints:
+            {
+                objectPoints.clear();
+                meshes.clear();
+                std::vector<Point3f> points;
+
+                float radius = 2.0f;
+                float height = 4.0f;
+                int slices = 16;
+                int stacks = 5;
+
+                float halfHeight = height / 2.0f;
+                Point3f apex({0.f, halfHeight, 0.f});
+
+                points.push_back(apex);
+
+                points.push_back(Point3f({0.f, -halfHeight, 0.f}));
+
+                for (int i = 1; i <= stacks; ++i) {
+                    float t = (float)i / (float)stacks;
+                    float y = halfHeight - t * height;
+                    float currentRadius = t * radius;
+
+                    for (int j = 0; j < slices; ++j) {
+                        float theta = 2.0f * M_PI * (float)j / (float)slices;
+                        float x = currentRadius * std::cos(theta);
+                        float z = currentRadius * std::sin(theta);
+
+                        points.push_back(Point3f({x, y, z}));
+                    }
+                }
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> disT(0.0, 1.0);
+                std::uniform_real_distribution<> disR(0.0, 1.0);
+                std::uniform_real_distribution<> disAngle(0.0, 2.0 * M_PI);
+
+                for (int i = 0; i < numberOfRandomPoints; ++i) {
+                    float t = (float)disT(gen);
+                    float y = halfHeight - t * height;
+                    
+                    float maxRadiusAtY = t * radius;
+                    
+                    float r = std::sqrt((float)disR(gen)) * maxRadiusAtY;
+                    float theta = (float)disAngle(gen);
+
+                    float x = r * std::cos(theta);
+                    float z = r * std::sin(theta);
+
+                    points.push_back(Point3f({x, y, z}));
+                }
+
+                objectPoints.emplace_back("cone", points);
+            }
+            break;
         
         case ButtonClick::resetCamera:
             {
@@ -342,7 +493,6 @@ private:
         auto& input = this->input();
         this->dt = dt;
 
-        // Atualiza posição do mouse
         mouseDx = input.mouseX - mouseX;
         mouseDy = input.mouseY - mouseY;
         mouseX = input.mouseX;
@@ -460,6 +610,18 @@ private:
             buttonClick = ButtonClick::generateCubePoints;
         }
         
+        if (ImGui::Button("Gerar Esfera")) {
+            buttonClick = ButtonClick::generateSpherePoints;
+        }
+        
+        if (ImGui::Button("Gerar Cilindro")) {
+            buttonClick = ButtonClick::generateCylinderPoints;
+        }
+        
+        if (ImGui::Button("Gerar Cone")) {
+            buttonClick = ButtonClick::generateConePoints;
+        }
+        
         fileSelector.Draw();
         
         if(!objectPoints.empty()) {
@@ -469,20 +631,15 @@ private:
             }
             ImGui::Separator();
             
-            // --- CONTROLE DE CAMERA ---
             if (ImGui::CollapsingHeader("Controle de Câmera", ImGuiTreeNodeFlags_DefaultOpen)) {
-                // Boom (Distância)
                 if (ImGui::DragFloat("Distância (Boom)", &camera.boom, 0.1f, 0.1f, 1000.0f)) shouldUpdateCamera = true;
                 
-                // Ângulos de Rotação
                 if (ImGui::SliderAngle("Ângulo X", &camera.angleX)) shouldUpdateCamera = true;
                 if (ImGui::SliderAngle("Ângulo Y", &camera.angleY, -89.0f, 89.0f)) shouldUpdateCamera = true;
 
                 ImGui::Separator();
                 ImGui::Text("Centro do Alvo:");
                 
-                // Posição do Centro (Target)
-                // Nota: Usando DragFloat porque ImGui não tem DragDouble nativo simples sem flags específicas
                 float cX = (float)camera.centerX;
                 float cY = (float)camera.centerY;
                 float cZ = (float)camera.centerZ;

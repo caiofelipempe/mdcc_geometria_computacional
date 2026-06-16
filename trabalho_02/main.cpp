@@ -3,7 +3,6 @@
 #include "utils/file_saver.hpp"
 #include "utils/file_selector.hpp"
 #include "utils/tetrahedralization.hpp"
-#include "utils/obj_model.hpp"
 #include "vector.hpp"
 #include "point.hpp"
 
@@ -219,6 +218,39 @@ private:
         }
         
         return objetos;
+    }
+
+    std::string objectMeshesToOBJ(const std::vector<std::tuple<std::string, geometry::Mesh3f>>& objetos)
+    {
+        std::ostringstream out;
+
+        out << "# Generated OBJ\n";
+
+        std::size_t vertex_offset = 1;
+
+        for (const auto& [nome, mesh] : objetos) {
+            const auto& vertices = mesh.getVertices();
+            const auto& faces    = mesh.getFaces();
+
+            if (vertices.empty()) continue;
+
+            out << "o " << nome << "\n";
+
+            for (const auto& v : vertices) {
+                out << "v " << v[0] << " " << v[1] << " " << v[2] << "\n";
+            }
+
+            for (const auto& f : faces) {
+                out << "f "
+                    << (vertex_offset + f[0]) << " "
+                    << (vertex_offset + f[1]) << " "
+                    << (vertex_offset + f[2]) << "\n";
+            }
+
+            vertex_offset += vertices.size();
+        }
+
+        return out.str();
     }
 
     void updateButtomClick() {
@@ -515,8 +547,21 @@ private:
 
     void updateFileSaver() {
         if (fileSaver.HasSelected() && meshes.size() > 0) {
-            auto objModel = ObjModel<float, 3>::fromMeshes(meshes);
-            objModel.save(fileSaver.GetSelectedPath());
+            auto path = fileSaver.GetSelectedPath();
+
+            std::string objData = objectMeshesToOBJ(meshes);
+
+            if (path.size() < 4 || path.substr(path.size() - 4) != ".obj") {
+                path += ".obj";
+            }
+
+            std::ofstream file(path);
+            if (file.is_open()) {
+                file << objData;
+                file.close();
+            } else {
+                std::cerr << "Erro ao salvar arquivo: " << path << "\n";
+            }
         }
     }
 

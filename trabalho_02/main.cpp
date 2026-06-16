@@ -220,7 +220,8 @@ private:
         return objetos;
     }
 
-    std::string objectMeshesToOBJ(const std::vector<std::tuple<std::string, geometry::Mesh3f>>& objetos)
+    std::string objectMeshesToOBJ(
+        const std::vector<std::tuple<std::string, geometry::Mesh3f>>& objetos)
     {
         std::ostringstream out;
 
@@ -231,6 +232,7 @@ private:
         for (const auto& [nome, mesh] : objetos) {
             const auto& vertices = mesh.getVertices();
             const auto& faces    = mesh.getFaces();
+            const auto& tets     = mesh.getTetrahedrons();
 
             if (vertices.empty()) continue;
 
@@ -245,6 +247,18 @@ private:
                     << (vertex_offset + f[0]) << " "
                     << (vertex_offset + f[1]) << " "
                     << (vertex_offset + f[2]) << "\n";
+            }
+
+            for (const auto& t : tets) {
+                std::size_t i0 = vertex_offset + t[0];
+                std::size_t i1 = vertex_offset + t[1];
+                std::size_t i2 = vertex_offset + t[2];
+                std::size_t i3 = vertex_offset + t[3];
+
+                out << "f " << i0 << " " << i1 << " " << i2 << "\n";
+                out << "f " << i0 << " " << i1 << " " << i3 << "\n";
+                out << "f " << i0 << " " << i2 << " " << i3 << "\n";
+                out << "f " << i1 << " " << i2 << " " << i3 << "\n";
             }
 
             vertex_offset += vertices.size();

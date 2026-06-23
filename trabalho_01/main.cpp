@@ -172,7 +172,7 @@ private:
     std::mutex meshesMutex;
     std::future<void> bruteForceFut;
     std::atomic<bool> bruteForceStop;
-    bool showOriginalPoints = false;
+    bool showPoints = false;
     bool showVertices = false;
     bool showEdges = false;
     bool showFaces = true;
@@ -363,7 +363,7 @@ private:
             ImGui::Separator();
 
             if(meshes.size() > 0) {
-                ImGui::Checkbox("Mostrar pontos originais", &showOriginalPoints);
+                ImGui::Checkbox("Mostrar pontos originais", &showPoints);
                 ImGui::Checkbox("Mostrar vertices", &showVertices);
                 ImGui::Checkbox("Mostrar arestas", &showEdges);
                 ImGui::Checkbox("Mostrar faces", &showFaces);
@@ -577,7 +577,7 @@ private:
                 glEnd();
             }
             
-            if(showOriginalPoints) {
+            if(showPoints) {
                 glDisable(GL_LIGHTING);
                 glPointSize(2.f);
                 glColor3f(1.0f, 1.0f, 0.0f);

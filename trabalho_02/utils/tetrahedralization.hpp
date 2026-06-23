@@ -1,6 +1,8 @@
 #pragma once
 
 #include "mesh.hpp"
+#include "quicksort.hpp"
+
 #include <array>
 #include <set>
 #include <algorithm>
@@ -166,9 +168,8 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
                     {tet_indices[0], tet_indices[2], tet_indices[3]},
                     {tet_indices[1], tet_indices[2], tet_indices[3]}
                 }};
-
+ 
                 for (const auto& face : faces) {
-                    if (stop) return;
                     if (polygon_cavity.contains(face)) {
                         polygon_cavity.erase(face);
                     } else {
@@ -178,9 +179,10 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
             }
         }
 
-        std::sort(bad_tetrahedrons.begin(), bad_tetrahedrons.end(), std::greater<std::size_t>());
+        sort::quickSort(bad_tetrahedrons, std::greater<std::size_t>());
         for (auto index : bad_tetrahedrons) {
             if (stop) return;
+
             {
                 std::scoped_lock lock(mutex);
                 mesh.getTetrahedrons().erase(mesh.getTetrahedrons().begin() + index);
@@ -190,6 +192,7 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
 
         for (const auto& face : polygon_cavity) {
             if (stop) return;
+
             {
                 std::scoped_lock lock(mutex);
                 mesh.getTetrahedrons().push_back({face[0], face[1], face[2], i});
@@ -206,7 +209,7 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
                    x[2] >= num_original_vertices || x[3] >= num_original_vertices;
         }), tets.end());
     }
-
+ 
     usleep(step_time.load());
     {
         std::scoped_lock lock(mutex);

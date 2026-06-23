@@ -138,10 +138,8 @@ private:
     std::atomic<bool> delaunayStop = false;
     std::atomic<bool> delaunayRunning = false;
     std::atomic<useconds_t> step_time = 3000;
-    bool showOriginalPoints = false;
-    bool showVertices = false;
+    bool showPoints = true;
     bool showEdges = true;
-    bool showFaces = false;
     bool shouldUpdateCamera = true;
 
     GLuint fbo = 0;
@@ -745,10 +743,8 @@ private:
             ImGui::Separator();
 
             if(meshes.size() > 0) {
-                ImGui::Checkbox("Mostrar pontos originais", &showOriginalPoints);
-                ImGui::Checkbox("Mostrar vertices", &showVertices);
+                ImGui::Checkbox("Mostrar pontos", &showPoints);
                 ImGui::Checkbox("Mostrar arestas", &showEdges);
-                ImGui::Checkbox("Mostrar faces", &showFaces);
 
                 if (ImGui::Button("Salvar Modelo")) {
                     buttonClick = ButtonClick::saveModel;
@@ -845,56 +841,6 @@ private:
         );
 
         if(!meshes.empty()) {
-            if(showFaces) {
-                glEnable(GL_LIGHTING);
-                glEnable(GL_LIGHT0);
-                
-                GLfloat light_pos[] = { 5.0f, 10.0f, 5.0f, 1.0f };
-                GLfloat light_ambient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-                GLfloat light_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-                GLfloat light_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-                
-                glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
-                glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-                glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-                
-                GLfloat material_ambient[] = { 0.7f, 0.5f, 0.3f, 1.0f };
-                GLfloat material_diffuse[] = { 0.8f, 0.6f, 0.4f, 1.0f };
-                GLfloat material_specular[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-                GLfloat material_shininess[] = { 32.0f };
-                
-                glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
-                glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
-                glMaterialfv(GL_FRONT, GL_SPECULAR, material_specular);
-                glMaterialfv(GL_FRONT, GL_SHININESS, material_shininess);
-                
-                glBegin(GL_TRIANGLES);
-
-                for (auto& [name, mesh] : meshes) {
-                    auto vertices = mesh.getVertices();
-                    for (auto face : mesh.getFaces()) {
-                         auto v0 = vertices[face[0]];
-                         auto v1 = vertices[face[1]];
-                         auto v2 = vertices[face[2]];
-
-                        geometry::Vec3f edge1 = v1 - v0;
-                        geometry::Vec3f edge2 = v2 - v0;
-                        geometry::Vec3f face_normal = edge1.cross(edge2).normalized();
-                        
-                        glNormal3f(face_normal[0], face_normal[1], face_normal[2]);
-                        glVertex3f(v0[0], v0[1], v0[2]);
-                        glVertex3f(v1[0], v1[1], v1[2]);
-                        glVertex3f(v2[0], v2[1], v2[2]);
-                    }
-                }
-                
-                glEnd();
-                
-                glDisable(GL_LIGHT0);
-                glDisable(GL_LIGHTING);
-            }
-            
             if(showEdges) {
                 glDisable(GL_LIGHTING);
                 glLineWidth(1.f);
@@ -927,29 +873,7 @@ private:
                 glEnd();
             }
             
-            if(showVertices) {
-                glDisable(GL_LIGHTING);
-                glPointSize(2.f);
-                glColor3f(1.0f, 0.0f, 0.0f);
-                
-                glBegin(GL_POINTS);
-                
-                for (const auto& [name, mesh] : meshes) {
-                    auto vertices = mesh.getVertices();
-                    for (const auto &face : mesh.getFaces()) {
-                        auto v0 = vertices[face[0]];
-                        auto v1 = vertices[face[1]];
-                        auto v2 = vertices[face[2]];
-                        glVertex3f(v0[0], v0[1], v0[2]);
-                        glVertex3f(v1[0], v1[1], v1[2]);
-                        glVertex3f(v2[0], v2[1], v2[2]);
-                    }
-                }
-                
-                glEnd();
-            }
-            
-            if(showOriginalPoints) {
+            if(showPoints) {
                 glDisable(GL_LIGHTING);
                 glPointSize(2.f);
                 glColor3f(1.0f, 1.0f, 0.0f);

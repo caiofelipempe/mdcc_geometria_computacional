@@ -130,18 +130,18 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
         if (stop) return;
 
         Point3f p;
-        std::size_t meshTetrahedronSize;
+        std::size_t mesh_tetrahedron_size;
         {
             std::scoped_lock lock(mutex);
             p = mesh.getVertices()[i];
-            meshTetrahedronSize = mesh.getTetrahedrons().size();
+            mesh_tetrahedron_size = mesh.getTetrahedrons().size();
         }
 
-        std::vector<std::size_t> bad_tetrahedrons;
+        std::vector<std::size_t> tetrahedron_to_erase_indexes;
         
         std::set<std::array<std::size_t, 3>, decltype(&compFaces)> polygon_cavity(&compFaces);
 
-        for (std::size_t t = 0; t < meshTetrahedronSize; ++t) {
+        for (std::size_t t = 0; t < mesh_tetrahedron_size; ++t) {
             if (stop) return;
             
             Point3f csp0, csp1, csp2, csp3;
@@ -160,7 +160,7 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
             float dist_sqr = p.squared_distance_to(cs.center);
 
             if (dist_sqr < cs.radius_sqr - 1e-6f) {
-                bad_tetrahedrons.push_back(t);
+                tetrahedron_to_erase_indexes.push_back(t);
                 
                 std::array<std::array<std::size_t, 3>, 4> faces = {{
                     {tet_indices[0], tet_indices[1], tet_indices[2]},
@@ -179,10 +179,8 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
             }
         }
 
-        sort::quickSort(bad_tetrahedrons, std::greater<std::size_t>());
-        for (auto index : bad_tetrahedrons) {
-            if (stop) return;
-
+        sort::quickSort(tetrahedron_to_erase_indexes, std::greater<std::size_t>());
+        for (auto index : tetrahedron_to_erase_indexes) {
             {
                 std::scoped_lock lock(mutex);
                 mesh.getTetrahedrons().erase(mesh.getTetrahedrons().begin() + index);
@@ -191,8 +189,6 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
         }
 
         for (const auto& face : polygon_cavity) {
-            if (stop) return;
-
             {
                 std::scoped_lock lock(mutex);
                 mesh.getTetrahedrons().push_back({face[0], face[1], face[2], i});

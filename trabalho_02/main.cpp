@@ -876,7 +876,7 @@ private:
             if(showPoints) {
                 glDisable(GL_LIGHTING);
                 glPointSize(2.f);
-                glColor3f(1.0f, 1.0f, 0.0f);
+                glColor3f(1.0f, .0f, .0f);
                 
                 glBegin(GL_POINTS);
                 

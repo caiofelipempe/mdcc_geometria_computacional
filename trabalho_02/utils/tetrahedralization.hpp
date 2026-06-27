@@ -6,6 +6,7 @@
 #include <array>
 #include <set>
 #include <algorithm>
+#include <random>
 #include <cmath>
 #include <vector>
 #include <cstdint>
@@ -94,7 +95,7 @@ inline Circumsphere getCircumsphere(const Point3f& p0, const Point3f& p1, const 
     return cs;
 }
 
-void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::mutex& mutex, std::atomic<bool>& stop) {
+void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::mutex& mutex, std::atomic<bool>& stop, bool random_iteration) {
     std::size_t num_original_vertices;
     
     {
@@ -126,14 +127,23 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
         mesh.getTetrahedrons().push_back({st0, st1, st2, st3});
     }
 
-    for (std::size_t i = 0; i < num_original_vertices; ++i) {
+    std::vector<size_t> indices(num_original_vertices);
+    std::iota(indices.begin(), indices.end(), 0);
+
+    if(random_iteration) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(indices.begin(), indices.end(), g);
+    }
+
+    for (auto idx : indices) {
         if (stop) return;
 
         Point3f p;
         std::size_t mesh_tetrahedron_size;
         {
             std::scoped_lock lock(mutex);
-            p = mesh.getVertices()[i];
+            p = mesh.getVertices()[idx];
             mesh_tetrahedron_size = mesh.getTetrahedrons().size();
         }
 
@@ -191,7 +201,7 @@ void delaunay(geometry::Mesh3f& mesh, std::atomic<useconds_t>& step_time, std::m
         for (const auto& face : polygon_cavity) {
             {
                 std::scoped_lock lock(mutex);
-                mesh.getTetrahedrons().push_back({face[0], face[1], face[2], i});
+                mesh.getTetrahedrons().push_back({face[0], face[1], face[2], idx});
             }
             usleep(step_time.load());
         }

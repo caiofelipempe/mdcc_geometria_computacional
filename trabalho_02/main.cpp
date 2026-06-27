@@ -128,6 +128,7 @@ private:
         saveModel,
         cgal,
         delaunay,
+        delaunay_rnd,
     } buttonClick = ButtonClick::none;
 
     int numberOfRandomPoints = 50;
@@ -519,6 +520,7 @@ private:
             break;
         
         case ButtonClick::delaunay:
+        case ButtonClick::delaunay_rnd:
             {
                 meshes.clear();
 
@@ -531,10 +533,11 @@ private:
                 }
 
                 delaunayRunning = true;
-                delaunayFut = std::async(std::launch::async, ([this]() {
+                bool rnd = buttonClick == ButtonClick::delaunay_rnd;
+                delaunayFut = std::async(std::launch::async, ([this, rnd]() {
                     if(delaunayStop) return;
                     for (auto &[_, mesh] : meshes) {
-                        tetrahedralization::delaunay(mesh, step_time, meshesMutex, delaunayStop);
+                        tetrahedralization::delaunay(mesh, step_time, meshesMutex, delaunayStop, rnd);
                     }
 
                     delaunayRunning = false;
@@ -771,6 +774,9 @@ private:
                 step_time = dragStepTime;
                 if (ImGui::Button("Delaunay")) {
                     buttonClick = ButtonClick::delaunay;
+                }
+                if (ImGui::Button("Delaunay Rnd")) {
+                    buttonClick = ButtonClick::delaunay_rnd;
                 }
 
                 ImGui::Separator();

@@ -268,7 +268,6 @@ private:
 
     void updateButtomClick() {
         if(buttonClick != ButtonClick::none && delaunayRunning) {
-            std::cout << "Teste";
             delaunayStop = true;
             return;
         }
